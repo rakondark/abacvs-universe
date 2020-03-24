@@ -71,7 +71,7 @@ app.post('/upload', async (req, res) => {
   if (resultsselectmd5.length === 0) {
     // insert filedata
     var insertstr = "INSERT INTO `abacvs_files_"+myfileext+"` ( `oldname`, `ext`, `md5`, `email`, `size`, `download`, `lastdown`, `uptime`, `rawdata`) \
-                      VALUES ( :myfilename,:myfileext,:mymd5,:myemail,:myfilesize  '0', NOW(),  NOW(),COMPRESS(:myfile)); ";
+                      VALUES ( :myfilename,:myfileext,:mymd5,:myemail,:myfilesize  ,'0', NOW(),  NOW(),COMPRESS(:myfile)); ";
     var todos = {"myfilename":myfilename,"myfileext":myfileext,"mymd5":mymd5,"myemail":myemail,"myfilesize":myfilesize,"myfile":myfile};
     const resultsfile = await query(conn, insertstr,todos).catch(console.log);
     //console.log("INSERT FILE");

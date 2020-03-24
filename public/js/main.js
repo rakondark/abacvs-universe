@@ -31,7 +31,7 @@ window.onload = function() {
         }	
     }
     filesUpload.addEventListener("click", function (evt) {	
-        if ((document.getElementById("email").value).search("@") || document.getElementById("email").value == "") { 
+        if (!(document.getElementById("email").value).search("@") || document.getElementById("email").value == "") { 
         alert('Please Enter a valid Group@YourID. include @ sign pls.'); 
         evt.preventDefault();evt.stopPropagation();
     } 
