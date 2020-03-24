@@ -1,0 +1,26 @@
+/* version 0.0.0.7 info see bottom */
+.left 		{text-align:left;}
+.right 		{text-align:right;}
+.center 	{text-align:center}
+.pname 		{width:140px;}
+.prace 		{width:100px;}
+.fsize {font-size: 11px;}
+.pmap, .pkill, .pdead , .pbuild {width:40px;}
+.pscore, .pplayer, .seqid, .patch  	{width:60px;}
+.typ, .map, .playtime, .playdate {width:100px;}
+.down 		{width:80px;}
+.sequence{margin-top:2px; border:1px solid #000000; padding:5px; width:800px; }
+.secfilename {font-weight:bold; padding-top:5px; margin:0px;}
+.color0 {background-color:#cc0000;}
+.color1 {background-color:#009933;}
+.color2 {background-color:#cc9900;}
+.color3 {background-color:#0000ff;}
+.color4 {background-color:#ff66ff;}
+.color5 {background-color:#ffff66;}
+.color6 {background-color:#996633;}
+.color7 {background-color:#a6a6a6;}
+#headerimg { 
+    margin: 0 auto;
+    width:1024px; height:134px;
+    background-image:url('/images/default_cw_bg_fullscreen20xx.jpg');
+}
