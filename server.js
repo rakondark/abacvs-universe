@@ -434,20 +434,30 @@ app.get('/bestof/:id', async (req, res) => {
   const resultsselecthighlost = await query(conn, maxselecter('seqb.losts  ')).catch(console.log);
   const resultsselecthightrain = await query(conn, maxselecter('seqb.trains  ')).catch(console.log);
   const resultsselecthightime = await query(conn, maxselecter('seqb.times  ')).catch(console.log);
-  const resultsselecthighsumskill = await query(conn, playerselecter({field:'SUM(seqb.skill) as sumskill',as:'sumskill'})).catch(console.log);
+ 
   const resultsselecthighgamecount = await query(conn, playerselecter({field:'COUNT(seqb.skill) as gamescount',as:'gamescount'})).catch(console.log);
+  const resultsselecthighsumskill = await query(conn, playerselecter({field:'SUM(seqb.skill) as sumskill',as:'sumskill'})).catch(console.log);
   const resultsselecthighsumpoints = await query(conn, playerselecter({field:'SUM(seqb.wins) as sumpoints',as:'sumpoints'})).catch(console.log);
   const resultsselecthighsumkills = await query(conn, playerselecter({field:'SUM(seqb.kills) as sumkills',as:'sumkills'})).catch(console.log);
   const resultsselecthighsumlosts = await query(conn, playerselecter({field:'SUM(seqb.losts) as sumlosts',as:'sumlosts'})).catch(console.log);
   const resultsselecthighsumtrains = await query(conn, playerselecter({field:'SUM(seqb.trains) as sumtrains',as:'sumtrains'})).catch(console.log);
   const resultsselecthighsumtimes = await query(conn, playerselecter({field:'SUM(seqb.times) as sumtimes',as:'sumtimes'})).catch(console.log);
   const resultsselecthighgamewin = await query(conn, playerselecter({field:'SUM(seqb.wins) as gameswin',as:'gameswin'})).catch(console.log);
+
+  const resultsselecthighavgskill = await query(conn, playerselecter({field:'AVG(seqb.skill) as avgskill',as:'avgskill'})).catch(console.log);
+  const resultsselecthighavgpoints = await query(conn, playerselecter({field:'AVG(seqb.wins) as avgpoints',as:'avgpoints'})).catch(console.log);
+  const resultsselecthighavgkills = await query(conn, playerselecter({field:'AVG(seqb.kills) as avgkills',as:'avgkills'})).catch(console.log);
+  const resultsselecthighavglosts = await query(conn, playerselecter({field:'AVG(seqb.losts) as avglosts',as:'avglosts'})).catch(console.log);
+  const resultsselecthighavgtrains = await query(conn, playerselecter({field:'AVG(seqb.trains) as avgtrains',as:'avgtrains'})).catch(console.log);
+  const resultsselecthighavgtimes = await query(conn, playerselecter({field:'AVG(seqb.times) as avgtimes',as:'avgtimes'})).catch(console.log);
    conn.close();
   // check if no md5
    res.json({'skill':resultsselecthighskill,'kills':resultsselecthighkill,'points':resultsselecthighscore,'losts':resultsselecthighlost,
               'trains':resultsselecthightrain,'times':resultsselecthightime,'sumskill':resultsselecthighsumskill,'gamescount':resultsselecthighgamecount,'gameswin':resultsselecthighgamewin,
-            'sumpoints':resultsselecthighsumpoints,'sumkills':resultsselecthighsumkills,'sumlosts':resultsselecthighsumlosts,'sumtrains':resultsselecthighsumtrains,'sumtimes':resultsselecthighsumtimes
-            });
+            'sumpoints':resultsselecthighsumpoints,'sumkills':resultsselecthighsumkills,'sumlosts':resultsselecthighsumlosts,'sumtrains':resultsselecthighsumtrains,'sumtimes':resultsselecthighsumtimes,
+            'avgskill':resultsselecthighavgskill,'avgpoints':resultsselecthighavgpoints,'avgkills':resultsselecthighavgkills,'avglosts':resultsselecthighavglosts,'avgtrains':resultsselecthighavgtrains,'avgtimes':resultsselecthighavgtimes
+              
+          });
   }
  })
 app.listen(port, () => console.log(`Example app listening on port ${port}!`))
