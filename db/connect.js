@@ -12,6 +12,7 @@ module.exports = async (params) => new Promise(
     }
     resolve(connection);
   });
+  /*
   connection.config.queryFormat = function (query, values) {
     if (!values) return query;
     return query.replace(/\:(\w+)/g, function (txt, key) {
@@ -21,4 +22,5 @@ module.exports = async (params) => new Promise(
       return txt;
     }.bind(this));
   };
+  */
 });

@@ -64,15 +64,15 @@ app.post('/upload', async (req, res) => {
   const conn = await connection(dbConfig).catch(e => {}); 
   // let hash = crypto.createHash('md5').update(req.body.myfile).digest("hex");
   // check if md5 exists
-  var selectmd5 = "SELECT `md5` FROM `abacvs_files_"+myfileext+"` WHERE `md5`= :md5; ";
-  var todos={"md5":mymd5};
+  var selectmd5 = "SELECT `md5` FROM `abacvs_files_"+myfileext+"` WHERE `md5`= ?; ";
+  var todos=[mymd5];
   const resultsselectmd5 = await query(conn, selectmd5,todos).catch(console.log);
   // check if no md5
   if (resultsselectmd5.length === 0) {
     // insert filedata
     var insertstr = "INSERT INTO `abacvs_files_"+myfileext+"` ( `oldname`, `ext`, `md5`, `email`, `size`, `download`, `lastdown`, `uptime`, `rawdata`) \
-                      VALUES ( :myfilename,:myfileext,:mymd5,:myemail,:myfilesize  ,'0', NOW(),  NOW(),COMPRESS(:myfile)); ";
-    var todos = {"myfilename":myfilename,"myfileext":myfileext,"mymd5":mymd5,"myemail":myemail,"myfilesize":myfilesize,"myfile":myfile};
+                  VALUES ( ?,  ?,  ?, ?,  ?,  '0', NOW(),  NOW(),COMPRESS(?)); ";
+    var todos = [ myfilename,myfileext,mymd5,myemail,myfilesize,myfile];
     const resultsfile = await query(conn, insertstr,todos).catch(console.log);
     //console.log("INSERT FILE");
     //console.log(results.insertId);
@@ -80,17 +80,16 @@ app.post('/upload', async (req, res) => {
     var inserthead = "INSERT INTO `abacvs_seqhead_"+myfileext+"` \
                   ( `uid`, `version`, `gtime`, `datum`, `zeit`, `karte`, `cpuskill`, `players`, `kategori`, \
                   `towers`, `catapults`, `ballistas`, `rams`, `dataset`) \
-                  VALUES (:resultsfile,:exeversion,:nallTime,:gamedate,:gametime,:mapa,:cpuskill,:playerCounter,:kategori,:tow,:cat,:bal,:ram,:myfiledata) ";
-    var todos = {"resultsfile":resultsfile.insertId,"exeversion":mysequence.exeversion,"nallTime":mysequence.nallTime,"gamedate":mysequence.gamedate,"gametime":mysequence.game_time,"mapa":mysequence.mapa,"cpuskill":mysequence.cpuskill,"playerCounter":mysequence.playerCounter,"kategori":mysequence.kategori,"tow":mysequence.tow,"cat":mysequence.cat,"bal":mysequence.bal,"ram":mysequence.ram,"myfiledata":req.body.myfiledata};
-    const resultshead = await query(conn, inserthead,todos).catch(console.log);
+                  VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?) ";
+                  var todos = [resultsfile.insertId,mysequence.exeversion,mysequence.nallTime,mysequence.gamedate,mysequence.game_time,mysequence.mapa,mysequence.cpuskill,mysequence.playerCounter,mysequence.kategori,mysequence.tow,mysequence.cat,mysequence.bal,mysequence.ram,req.body.myfiledata];  const resultshead = await query(conn, inserthead,todos).catch(console.log);
     mysequence["fileid"] = resultsfile.insertId;
     mysequence["headid"] = resultshead.insertId;
     mysequence["email"]=(mysequence["email"].split('@'))[0];
-    var todos={"mapid":mysequence.mapa};
-    const resultkarte = await query(conn, 'SELECT filename FROM abacvs_karten WHERE mapid = :mapid',todos).catch(console.log);
+    var todos=[mysequence.mapa];
+    const resultkarte = await query(conn, 'SELECT filename FROM abacvs_karten WHERE mapid = ?',todos).catch(console.log);
     mysequence["karteen"]=resultkarte[0].filename;
-    var todoshead = {"dataset":JSON.stringify(mysequence),"idx":resultshead.insertId};
-    var updatehead = "UPDATE `abacvs_seqhead_"+myfileext+"` set `dataset`= :dataset WHERE `idx`= :idx ";
+    var todoshead = [JSON.stringify(mysequence),resultshead.insertId];
+    var updatehead = "UPDATE `abacvs_seqhead_"+myfileext+"` set `dataset`= ? WHERE `idx`= ? ";
     const resultupdatehead = await query(conn, updatehead,todoshead).catch(console.log);
 
     //console.log("INSERT HEAD");
@@ -123,9 +122,9 @@ app.post('/upload/md5', async (req, res) => {
    // console.log(mysequence.exeversion);
   const conn = await connection(dbConfig).catch(e => {}); 
   // check if md5 exists
-  var selectmd5 = "SELECT `md5` FROM `abacvs_files_"+myext+"` WHERE `md5`= :md5; ";
-  var todos=mymd5;
-  const resultsselectmd5 = await query(conn, selectmd5,{"md5":todos}).catch(console.log);
+  var selectmd5 = "SELECT `md5` FROM `abacvs_files_"+myext+"` WHERE `md5`= ? ";
+  var todos=[mymd5];
+  const resultsselectmd5 = await query(conn, selectmd5,todos).catch(console.log);
   // check if no md5
   conn.close();
   if (resultsselectmd5.length === 0) {
@@ -252,43 +251,43 @@ app.post('/list/:id', async (req, res) => {
   var limlength =  parseInt(req.body.limlength);
   var limstart = parseInt(req.body.limstart);
   var limstart = limstart*limlength-limlength;
-  var sqldata = {"limlength":limlength,"limstart":limstart};
+  var sqldata = [];
   var where = [];
   if (req.body.filterplayername !=  "") {
-    where += " AND seqb.name LIKE :filterplayername ";
-    sqldata['filterplayername'] = '%'+req.body.filterplayername+'%';
+    where += " AND seqb.name LIKE ? ";
+    sqldata.push('%'+req.body.filterplayername+'%');
   }
   if (req.body.filteridx !=  "") {
-    where += " AND seqh.idx =:filteridx ";
-    sqldata['filteridx'] = req.body.filteridx;
+    where += " AND seqh.idx =? ";
+    sqldata.push(req.body.filteridx);
   }
   if (req.body.filtercpuskill !=  "") {
-    where += " AND seqh.cpuskill =:filtercpuskill ";
-    sqldata['filtercpuskill'] = req.body.filtercpuskill;
+    where += " AND seqh.cpuskill =? ";
+    sqldata.push(req.body.filtercpuskill);
   }
   if (req.body.filtergroup !=  "" || req.body.filteryourid !=  "") {
-    where += " AND seqf.email LIKE :filteremail ";
-    sqldata['filteremail'] = '%'+req.body.filtergroup+'\@'+req.body.filteryourid+'%';
+    where += " AND seqf.email LIKE ? ";
+    sqldata.push('%'+req.body.filtergroup+'\@'+req.body.filteryourid+'%');
   }
   if (req.body.filterplayerwin !=  "" ) {
-    where += " AND seqb.wins = :filterplayerwin ";
-    sqldata['filterplayerwin'] = req.body.filterplayerwin;
+    where += " AND seqb.wins = ? ";
+    sqldata.push(req.body.filterplayerwin);
   }
   if (req.body.filterplayerrace !=  "" ) {
-    where += " AND seqb.rasse LIKE :filterplayerrace ";
-    sqldata['filterplayerrace'] = req.body.filterplayerrace;
+    where += " AND seqb.rasse LIKE ? ";
+    sqldata.push(req.body.filterplayerrace);
   }
   if (req.body.filterplayersaved !=  "" ) {
-    where += " AND seqb.saved = :filterplayersaved ";
-    sqldata['filterplayersaved'] = req.body.filterplayersaved;
+    where += " AND seqb.saved = ? ";
+    sqldata.push(req.body.filterplayersaved);
   }
   if (req.body.filterplycount !=  "" ) {
-    where += " AND seqh.players = :filterplycount ";
-    sqldata['filterplycount'] = req.body.filterplycount;
+    where += " AND seqh.players = ? ";
+    sqldata.push(req.body.filterplycount);
   }
   if (req.body.filterkategori !=  "" ) {
-    where += " AND seqh.kategori LIKE :filterkategori ";
-    sqldata['filterkategori'] = req.body.filterkategori;
+    where += " AND seqh.kategori LIKE ? ";
+    sqldata.push(req.body.filterkategori);
   }
   if (req.body.filtersiege !=  "" ) {
     if (req.body.filtersiege == 0 ) {
@@ -319,7 +318,7 @@ app.post('/list/:id', async (req, res) => {
   if (req.body.orderfield ==  "0" ) {
     order = ""; 
   }
-
+  sqldata.push(limlength,limstart);
     // console.log(mysequence.exeversion);
   const conn = await connection(dbConfig).catch(e => {}); 
   var selectrowcount =  "SELECT COUNT(DISTINCT seqh.uid) as zahler  FROM `abacvs_seqhead_"+myext+"` AS seqh  \
@@ -338,7 +337,7 @@ app.post('/list/:id', async (req, res) => {
                        "+where+" \
                       GROUP BY seqh.idx \
                        "+order+"  \
-                   LIMIT :limlength OFFSET :limstart ";
+                   LIMIT ? OFFSET ? ";
   
    const resultsselectseqlist = await query(conn, selectseqlist,sqldata).catch(console.log);
 
