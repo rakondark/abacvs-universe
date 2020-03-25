@@ -5,6 +5,7 @@ const host = process.env.DB_HOST || 'localhost';
 const user = process.env.DB_USER || 'praetorians';
 
 // Get the Password for DB from Environment or use default
+<<<<<<< HEAD
 const password = process.env.DB_PASS || 'xxxxxxxxxxx';
 
 // Get the Database from Environment or use default
