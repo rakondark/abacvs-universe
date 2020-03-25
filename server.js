@@ -411,16 +411,43 @@ app.get('/bestof/:id', async (req, res) => {
                         ORDER BY "+highval+" desc LIMIT 5";
                         return selecthigh;
   }
-                         
+  function playerselecter(highval) {
+    var selecthigh =  "SELECT seqh.idx ,seqh.dataset,seqb.name,seqb.rasse,"+highval.field+"  FROM `abacvs_seqhead_"+myext+"` AS seqh  \
+                         JOIN `abacvs_files_"+myext+"` AS seqf ON seqh.uid = seqf.idx  \
+                         JOIN  `abacvs_seqbody_"+myext+"` AS seqb ON seqb.sequenze = seqh.idx  \
+                         LEFT JOIN abacvs_karten AS seqk ON seqh.karte=seqk.mapid \
+                         GROUP BY seqb.name \
+                         ORDER BY "+highval.as+" desc LIMIT 5";
+                         return selecthigh;
+   }                       
+   /*
+   SELECT seqh.idx ,seqh.dataset,seqb.name,seqb.rasse,SUM(seqb.skill) as sumskill  FROM `abacvs_seqhead_save` AS seqh 
+                         JOIN `abacvs_files_sav` AS seqf ON seqh.uid = seqf.idx  
+                         JOIN  `abacvs_seqbody_sav` AS seqb ON seqb.sequenze = seqh.idx  
+                         LEFT JOIN abacvs_karten AS seqk ON seqh.karte=seqk.mapid 
+                         GROUP BY seqb.name 
+                         ORDER BY sumskill desc LIMIT 5
+   */
   const resultsselecthighskill = await query(conn, maxselecter('seqb.skill ')).catch(console.log);
   const resultsselecthighscore = await query(conn, maxselecter('seqb.points  ')).catch(console.log);
   const resultsselecthighkill = await query(conn, maxselecter('seqb.kills  ')).catch(console.log);
   const resultsselecthighlost = await query(conn, maxselecter('seqb.losts  ')).catch(console.log);
   const resultsselecthightrain = await query(conn, maxselecter('seqb.trains  ')).catch(console.log);
   const resultsselecthightime = await query(conn, maxselecter('seqb.times  ')).catch(console.log);
+  const resultsselecthighsumskill = await query(conn, playerselecter({field:'SUM(seqb.skill) as sumskill',as:'sumskill'})).catch(console.log);
+  const resultsselecthighgamecount = await query(conn, playerselecter({field:'COUNT(seqb.skill) as gamescount',as:'gamescount'})).catch(console.log);
+  const resultsselecthighsumpoints = await query(conn, playerselecter({field:'SUM(seqb.wins) as sumpoints',as:'sumpoints'})).catch(console.log);
+  const resultsselecthighsumkills = await query(conn, playerselecter({field:'SUM(seqb.kills) as sumkills',as:'sumkills'})).catch(console.log);
+  const resultsselecthighsumlosts = await query(conn, playerselecter({field:'SUM(seqb.losts) as sumlosts',as:'sumlosts'})).catch(console.log);
+  const resultsselecthighsumtrains = await query(conn, playerselecter({field:'SUM(seqb.trains) as sumtrains',as:'sumtrains'})).catch(console.log);
+  const resultsselecthighsumtimes = await query(conn, playerselecter({field:'SUM(seqb.times) as sumtimes',as:'sumtimes'})).catch(console.log);
+  const resultsselecthighgamewin = await query(conn, playerselecter({field:'SUM(seqb.wins) as gameswin',as:'gameswin'})).catch(console.log);
    conn.close();
   // check if no md5
-   res.json({'skill':resultsselecthighskill,'kills':resultsselecthighkill,'points':resultsselecthighscore,'losts':resultsselecthighlost,'trains':resultsselecthightrain,'times':resultsselecthightime});
+   res.json({'skill':resultsselecthighskill,'kills':resultsselecthighkill,'points':resultsselecthighscore,'losts':resultsselecthighlost,
+              'trains':resultsselecthightrain,'times':resultsselecthightime,'sumskill':resultsselecthighsumskill,'gamescount':resultsselecthighgamecount,'gameswin':resultsselecthighgamewin,
+            'sumpoints':resultsselecthighsumpoints,'sumkills':resultsselecthighsumkills,'sumlosts':resultsselecthighsumlosts,'sumtrains':resultsselecthighsumtrains,'sumtimes':resultsselecthighsumtimes
+            });
   }
  })
 app.listen(port, () => console.log(`Example app listening on port ${port}!`))
