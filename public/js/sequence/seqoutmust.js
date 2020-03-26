@@ -37,7 +37,7 @@ if(layout == "widget") {
 		// sequence head table row
 
 		html_out_secdata+=  '<tr>\n';
-		html_out_secdata+=  '<td colspan="2" class="center fsize"><img style="height:90px;" src="/images/mapas/mapnorm/{{karteen}}"></img></td>\n';
+		html_out_secdata+=  '<td colspan="2" class="center fsize">{{mapa}}</td>\n';
 		html_out_secdata+=  '<td  rowspan="3" class="center fsize" >';
 
 			// sequence body table 
@@ -89,7 +89,7 @@ if(layout == "widget") {
 		//html_out_secinfo='{{#.}}\n';
 	// sequence head table head
 	html_out_secinfo= '<tr>\n';
-	html_out_secinfo+= '<th rowspan="2" class=\"patch\"><img style="height:50px;" src="/images/mapas/mapnorm/'+sequence_info['karteen']+'"></th>\n';
+	html_out_secinfo+= '<th rowspan="2" class=\"patch\"><img src="/images/mapas/mapnorm/{{karteen}}" height=50 ></th>\n';
 	html_out_secinfo+= '<th class=\"patch fsize\">Patch</th>\n';
 	html_out_secinfo+= '<th class=\"typ fsize\">Players</th>\n';
 	html_out_secinfo+= '<th class=\"map fsize\">CPUs</th>\n';

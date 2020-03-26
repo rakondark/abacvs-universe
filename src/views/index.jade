@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" >
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+<meta name="Description" CONTENT="Author: rakondark@gmail.com, Category: HTML5 FileRead Local Sequence Praetorians Statistics , Software: JavaScript" >
+<style type="text/css">
+/* version 0.0.0.7 info see bottom */
+.left 		{text-align:left;}
+.right 		{text-align:right;}
+.center 	{text-align:center}
+.pname 		{width:180px;}
+.prace 		{width:120px;}
+.pmap, .pkill, .pdead , .pbuild {width:40px;}
+.pscore, .pplayer, .seqid, .patch  	{width:60px;}
+.typ, .map, .playtime, .playdate {width:100px;}
+.down 		{width:80px;}
+.sequence{margin-top:2px; border:1px solid #000000; padding:5px; width:600px;}
+.secfilename {font-weight:bold; padding-top:5px; margin:0px;}
+</style>
+<script type="text/javascript">
+var filepos = 0;
+var sequence,result ;
+window.onload = function() {
+var fileInput = document.getElementById('filein');
+    fileInput.addEventListener('change', function(e) 
+	{
+		for(var iii = 0 ; iii < fileInput.files.length; ++iii) {
+			morefiles(iii,fileInput);
+		}
+    });
+	
+}
+function morefiles(fi,fileInput) {
+
+		var file = fileInput.files[fi];
+		var frr = new FileReader();
+		frr.onload = function ()
+		{
+			filepos = 0;
+			var binary = "";
+			var base64er = "";
+			var bytes = new Uint8Array(frr.result);
+			var length = bytes.byteLength;
+
+			for (var i = 0; i < length; i++) {
+			  binary += String.fromCharCode(bytes[i]);
+			}
+			base64er = btoa(bytes);
+			sequence = getDataFromSeq(binary);
+			sequence['filename'] = file.name;
+			var fileDisplayArea = document.getElementById('output');
+			fileDisplayArea.innerHTML += '<div id="seq'+fi+'">'+asequence(sequence)+'</div>';
+			var mysec = '#sec'+fi;
+			var myseqid = '#seq'+fi;
+			$(myseqid).append('<div id="sec'+fi+'">'+ base64er +'</div>');
+			
+			$.ajax({
+			xhr: function() {
+			var xhr = new window.XMLHttpRequest();
+
+			xhr.upload.addEventListener("progress", function(evt) {
+			  if (evt.lengthComputable) {
+				var percentComplete = evt.loaded / evt.total;
+				percentComplete = parseInt(percentComplete * 100);
+				// console.log(percentComplete);
+				$(mysec).html('<p>'+percentComplete+' </p>');
+
+				if (percentComplete === 100) {
+					$(mysec).append('<p>progress '+percentComplete+' </p>');
+				}
+
+			  }
+			}, false);
+
+			return xhr;
+			},
+			url: "/upload",
+			type: "POST",
+			data: { myfile: base64er,
+					myfilename:file.name
+				},
+			success: function(result) {
+				$(mysec).append('<p>SUCESS Load</p>');
+			}
+			});
+			
+			
+
+			
+		};
+		frr.readAsArrayBuffer(file);
+}
+// output a sequence
+function asequence(sequence) 
+{
+
+		/* main sequence data */
+		sequence_info = sequence;
+		sequence_file = sequence.filename;
+		html_out = '<p class="secfilename">'+sequence_file+'</p><div class="sequence">\n';
+		/* player detail player_datas */
+		sequence_players = sequence['troops'];
+		/* make version number readable */
+		version = (sequence_info['exeversion'] == 105 ? '1.05' : (sequence_info['exeversion'] == 104 ? '1.04':(sequence_info['exeversion'] == 103 ? 'Demo':(sequence_info['exeversion'] == 102 ? 'release':'error'))));
+		//  sequence head table
+		html_out+= '<table cellpadding="0" cellspacing="0" class="sequenceheadtbl" >\n';
+		// sequence head table head
+		html_out+= '<tr>\n';
+		html_out+= '<th class=\"patch\">Patch</th>\n';
+		html_out+= '<th class=\"typ\">Players</th>\n';
+		html_out+= '<th class=\"map\">Map</th>\n';
+		html_out+= '<th class=\"map\">CPUs</th>\n';
+		html_out+= '<th class=\"playtime\">Time</th>\n';
+		html_out+= '<th class=\"playdate\">Date</th>\n';
+		html_out+= '</tr>\n';
+		// sequence head table row
+		html_out+= '<tr>\n';
+		html_out+= '<td class="center">'; 	html_out += version; 								html_out += '</td>\n';
+		html_out+= '<td class="center">'; 	html_out += sequence_info['playerCounter']; 		html_out += '</td>\n';
+		html_out+= '<td class="center">'; 	html_out += sequence_info['mapa']; 					html_out += '</td>\n';
+	// ADD CPU SKILLS 1= Easy , 2 = Normal , 3 = Hard
+		html_out+= '<td class="center">'; 	html_out += (sequence_info['cpuskill'] == 1 ? 'Easy':(sequence_info['cpuskill'] == 2 ? 'Normal':(sequence_info['cpuskill'] == 3 ? 'Hard':'')));
+
+		html_out += '</td>\n';
+		html_out+= '<td class="center">'; 	html_out += _game_time(sequence_info['nallTime']); 	html_out += '</td>\n';
+		html_out+= '<td class="center">'; 	html_out += sequence_info['gamedate']; 				html_out += '</td>\n';
+		html_out+= '</tr>\n</table>\n';
+		// sequence body table 
+		html_out+= '<table class="sequencetbl" cellpadding="0" cellspacing="0" id="sequencebodytbl" >\n';
+		// sequence body table head
+		html_out+= '<tr>\n';
+		html_out+= '<th class="left pname" nowrap="nowrap" >CPU</th>\n';
+		html_out+= '<th class="left pname" nowrap="nowrap" >Name</th>\n';
+		html_out+= '<th class="left prace">Race</th>\n';
+		html_out+= '<th class="left team">Team</th>\n';
+		html_out+= '<th class="right pkill">Killed</th>\n';
+		html_out+= '<th class="right pdead">Dead</th>\n';
+		html_out+= '<th class="right pbuild">Build</th>\n';
+		html_out+= '<th class="right pscore">Score</th>\n';
+		html_out+= '<th class="right pplayer">Player</th>\n';
+				html_out+= '<th class="right pplayer">Skill</th>\n';
+		html_out+= '</tr>\n';
+		// sequence body table rows
+		for (var ib=0 ; ib < sequence_players.length; ++ib) 
+		{
+				  player_data = sequence_players[ib];
+				  html_out+= '<tr>\n';
+				  html_out+= '<td width=125 nowrap class="left">'+(player_data['cpu'] == 1 ? 'Yes':'')+'</td>\n';
+				  html_out+= '<td width=125 nowrap class="left">'+	player_data['name']		+'</td>\n';
+				  html_out+= '<td class="left">'+					player_data['race']		+'</td>\n';
+				  html_out+= '<td class="right">'+					player_data['color']	+'</td>\n';
+				  html_out+= '<td class="right">'+					player_data['kills']	+'</td>\n';
+				  html_out+= '<td class="right">'+					player_data['losts']	+'</td>\n';
+				  html_out+= '<td class="right">'+					player_data['train']	+'</td>\n';
+				  html_out+= '<td class="right">'+					player_data['score']	
+				  html_out+= '<td class="right team'+player_data['team']+' color'+player_data['colors']+'">'+(player_data['wins'] == 1 ? 'win':'')+'</td>\n';			  
+				  html_out+= '<td class="right">'+	 Math.floor((player_data['score']*10000/sequence_info['nallTime'])) +'</td>\n';
+				  html_out+= '</tr>\n';
+		}
+		html_out+= '<tr>\n';
+		html_out+= '<td colspan="9" style="text-align:right; font-size:7pt; text-align:right; font-family:Arial,sans-serif; "  >';
+		html_out+= '</td>\n';
+		html_out+= '</tr>\n';
+		html_out+= '</table>\n';
+		html_out+= '</div>\n';
+		return html_out;
+}
+// read the sequence statistics
+function getDataFromSeq(sequence_player_datas) 
+{
+		var player_datas={};
+		var nothing=fread(sequence_player_datas,8);
+		player_datas['exeversion'] 		= 		ord(fgetc(sequence_player_datas));
+		nothing=fread(sequence_player_datas,3);
+		player_datas['nallTime'] 		= 		getInteger(sequence_player_datas,4);
+		player_datas['gamedate'] 		= 		getString(sequence_player_datas,1);
+		player_datas['game_time'] 		= 		getString(sequence_player_datas,1);
+		player_datas['mapa'] 			= 		getString(sequence_player_datas,1);
+	// ADDED CPU SKILL 03-hard, 02-normal, 01-easy 1 BYTE
+		nothing=fread(sequence_player_datas,1);
+		player_datas['cpuskill'] 	= 		getInteger(sequence_player_datas,1);
+		nothing=fread(sequence_player_datas,1);
+	// END ADDED
+		player_datas['playerCounter'] 	= 		getInteger(sequence_player_datas,1);
+		nothing=fread(sequence_player_datas,2);
+		player_datas['troops'] 			= 		new Array();
+		hasCPU = false;
+		for (var ii=0 ; ii < player_datas['playerCounter'] ; ++ii) 
+		{
+			var theid = ord(fread(sequence_player_datas,1));
+		/* ADDED ISCPU */
+			var iscpu = getInteger(sequence_player_datas,1);
+			if (iscpu == 1) {hasCPU = true;}
+		// ENd ADDED	
+			var player={};
+			player['name'] 				=  		getString(sequence_player_datas,2);
+			player['race'] 				=  		getString(sequence_player_datas,1);
+			/* skip some unknown values */
+			nothing=fread(sequence_player_datas,20);
+			/* here we find the count of troops follow */
+			troopscounter=getInteger(sequence_player_datas,1);
+			/* skip some empty values */
+			nothing=fread(sequence_player_datas,2);
+			/* now skip the troops */
+			skipelement(troopscounter,sequence_player_datas);
+			/*
+			if (player['race'] == "ROMANOS") 		{ skipelement(5,sequence_player_datas); } 
+			if (player['race'] == "BARBAROS") 		{ skipelement(5,sequence_player_datas); } 
+			if (player['race'] == "EGIPCIOS") 		{ skipelement(8,sequence_player_datas); } 
+			if (player['race'] == "CARTAGINESES") 	{ skipelement(6,sequence_player_datas); } 
+			if (player['race'] == "PERSAS") 		{ skipelement(5,sequence_player_datas); } 
+			if (player['race'] == "GRIEGOS") 		{ skipelement(7,sequence_player_datas); } 
+			if (player['race'] == "SAXONS") 		{ skipelement(7,sequence_player_datas); } 
+			if (player['race'] == "RASHIDUNS") 		{ skipelement(5,sequence_player_datas); } 
+			if (player['race'] == "SELEUCYDZI") 	{ skipelement(8,sequence_player_datas); } 
+			if (player['race'] == "SASODANIEL") 	{ skipelement(6,sequence_player_datas); } 
+			if (player['race'] == "TC") 			{ skipelement(8,sequence_player_datas); } 
+			if (player['race'] == "BRYTOWIE") 		{ skipelement(8,sequence_player_datas); } 
+			if (player['race'] == "MACEDON") 		{ skipelement(9,sequence_player_datas); } 
+			*/
+		/* ADDED ISCPU */
+			var mydpush = {"cpu":iscpu,"name" :player['name'],"race" :player['race'],"saved" :"","wins" :"","color" :"","team" :"","score" :"","villa" :"","time" :"","train" :"","kills" :"","losts" :""};
+		// END ADDED
+			player_datas['troops'].push(mydpush);
+		}
+	/* ADDED Check if CPU is inside , if not set skill to 0 */
+		if (hasCPU == false) {player_datas['cpuskill'] = 0;} 
+		// find the last player_datas cause there are the stats 
+		// at 0000450000800000
+	// END ADDED
+		var findid = "";
+		findid += mdechex(fgetc(sequence_player_datas))+mdechex(fgetc(sequence_player_datas));
+		findid += mdechex(fgetc(sequence_player_datas))+mdechex(fgetc(sequence_player_datas))+mdechex(fgetc(sequence_player_datas))+mdechex(fgetc(sequence_player_datas));
+		var findidout =[];
+		while (findid != "450000800000" &&  sequence_player_datas.length-1 > filepos) 
+		{
+			nextnewchar = mdechex(fgetc(sequence_player_datas));
+			findid = findid.substr(2)+nextnewchar;
+		}
+		nothing=fread(sequence_player_datas,4);
+		var players_coming =  getInteger(sequence_player_datas,1);
+		for (var ii=0 ; ii < players_coming ; ++ii) 
+		{
+			player_datas_saved 	= 	getInteger(sequence_player_datas,1) ;
+			player_datas_wins 	=  	getInteger(sequence_player_datas,1);
+			player_datas_color 	=  	getInteger(sequence_player_datas,1);
+			player_datas_team 	=  	getInteger(sequence_player_datas,1);
+			player_datas_score 	=  	getInteger(sequence_player_datas,4);
+			player_datas_villa 	=  	getInteger(sequence_player_datas,4);
+			player_datas_time 	= 	getInteger(sequence_player_datas,4);
+			player_datas_train 	= 	getInteger(sequence_player_datas,4);
+			player_datas_kills 	= 	getInteger(sequence_player_datas,4);
+			player_datas_losts 	= 	getInteger(sequence_player_datas,4);
+			player_datas_name 	= 	getString(sequence_player_datas,2);
+			nothing 			= 	getString(sequence_player_datas,2);
+			for (var ini=0 ; ini < player_datas['troops'].length ; ++ini) 
+			{
+				if (player_datas['troops'][ini]['name'] == player_datas_name)
+				{				
+						player_datas['troops'][ini]['saved'] 	= 	player_datas_saved ;
+						player_datas['troops'][ini]['wins'] 	=  	player_datas_wins;
+						player_datas['troops'][ini]['color'] 	=  	player_datas_color;
+						player_datas['troops'][ini]['team'] 	=  	player_datas_team;
+						player_datas['troops'][ini]['score'] 	=  	player_datas_score;
+						player_datas['troops'][ini]['villa'] 	=  	player_datas_villa;
+						player_datas['troops'][ini]['time'] 	= 	player_datas_time;
+						player_datas['troops'][ini]['train'] 	= 	player_datas_train;
+						player_datas['troops'][ini]['kills'] 	= 	player_datas_kills;
+						player_datas['troops'][ini]['losts'] 	= 	player_datas_losts;
+				}
+			}			
+		}
+/* todo find all siege weapons 
+	maschinen = array("catapults"=>'/CATAPULTA/',"ballistas"=>'/BALLESTA/',"rams"=>'/ARIETE/');
+	maschins = array("catapults"=>0,"ballistas"=>0,"rams"=>0,"towers"=>0);
+	towers = '/TORRE_DEFENSA/';
+	ismaschine = '';	
+	istower = '';	
+	havelabel = false;	
+	foundnewlabel= false; 
+*/
+	return player_datas;
+}
+// helper functions
+/* php ord functions */
+function ord(abyte) 
+{ 
+	return abyte.toString();
+}
+/* php file functions */
+function fgetc(sequence_player_datas) 
+{
+	var oldfpos = filepos;
+	++filepos;
+	return sequence_player_datas.charCodeAt(oldfpos);
+}
+function fread(sequence_player_datas,anzahl)
+{
+			var result;
+			for (var i=0; i < anzahl ; i++) 
+			{
+				result=result+fgetc(sequence_player_datas);
+			}
+			return result;
+}
+function fseek(sequence_player_datas,lastbytes,SEEK_END) 
+{
+			var ende 	= sequence_player_datas.length ;
+			var now 	= ende-lastbytes;
+			filepos 	= now;
+}
+// skip number of string entrys   
+function skipelement(nr,sequence_player_datas) 
+{
+	for (var ni=0; ni < nr; ni++) {id = ord(fread(sequence_player_datas,1)) ;nothing =  {"id":id,"value":getString(sequence_player_datas,1)};}
+}
+/* hex view for byte */
+function mdechex(aByte) 
+{
+	byteStr = aByte.toString(16);
+	if (byteStr.length < 2) {
+		byteStr = "0" + byteStr;
+	}
+  return byteStr;
+}
+/* reads a number byte long */
+function getInteger(sequence_player_datas,bytelong) 
+{
+	anint = 0;
+	if ( bytelong > 0 ) {anint += parseInt(ord(fgetc(sequence_player_datas)));} // 1 byte integer
+	if ( bytelong > 1 ) {anint += parseInt(ord(fgetc(sequence_player_datas)))*256;} // 2 byte integer
+	if ( bytelong > 2 ) {anint += parseInt(ord(fgetc(sequence_player_datas)))*256*256;}  // 3 byte integer
+	if ( bytelong > 3 ) {anint += parseInt(ord(fgetc(sequence_player_datas)))*256*256*256;}  // 4 byte integer
+	return anint;
+}
+/* reads a string with characters are 1 or 2 byte long */
+function getString(sequence_player_datas,bytelong) 
+{
+    var scount = ord(fgetc(sequence_player_datas));
+	var result_string = "";
+	if (scount > 0 ) {
+		for (ii=0 ; ii < scount;ii++) {
+			if (bytelong == 1 ) { // 1 byte character
+				result_string += String.fromCharCode(fgetc(sequence_player_datas));
+			}
+			if (bytelong == 2 ) { // 2 byte character
+				/* todo : read 2 bytes and get UTF-8 */
+				result_string += String.fromCharCode(fgetc(sequence_player_datas));
+				++filepos;
+			}
+		}
+	}
+	return result_string;
+}
+/* gameticks in realtime */
+function _game_time(game_time)
+{
+	total_seconds		=	Math.floor((game_time / 15.16285));
+	days 				= 	Math.floor((total_seconds / (60*60*24)));
+	hourn 				= 	Math.floor((total_seconds / (60*60)));
+	seconds_remaining 	= 	Math.floor(total_seconds-(hourn*(60*60)));
+	minutes 			= 	Math.floor((seconds_remaining / 60));
+	seconds 			= 	seconds_remaining-(minutes*60);
+	/* fill with 0 for 2 digit formated */
+	return (hourn < 10 ? '0'+hourn+':' : hourn+':')+(minutes < 10 ? '0'+minutes+':' : minutes+':')+(seconds < 10 ? '0'+seconds : seconds);
+}
+</script>
+</head>
+<body>
+<form><input id="filein" name="filein" type="file" multiple ></form>
+<div id="output"></div>
+<form id="sequ"></form>
+</body>
+</html>
+<!-- .5 by rakondark@gmail.com
+		update : 
+				added version 102
+		bugs :
+				fixed version 103
+		view :
+				center values at head table head
+				
+</!-->
+<!-- .6 by rakondark@gmail.com
+		update : readAsArrayBuffer  standard for binarys 2014)
+		         works in IE now
+				
+</!-->
+<!-- .7 by rakondark@gmail.com
+		upgrade : 
+		         multifile view (select many files as you like)
+				 layout with filename 
+				
+</!-->

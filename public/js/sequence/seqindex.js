@@ -5,17 +5,17 @@
                   evt.currentTarget.className += " w3-red";
     }
     
-    function loadlist(evt,gamerelease) {
-      loadlistres(gamerelease);
+    function loadlist(evt) {
+      loadlistres();
     }
     
-    function loadlistres(gamerelease) {
+    function loadlistres() {
                   $(".tablink").removeClass("w3-red");
                   $("#loadbutton").addClass("w3-red");
             var dataContainer = $('#seqdata');
 
             $('#seqlist').pagination({
-                  dataSource: '/list/'+gamerelease,
+                  dataSource: '/list/'+$('#gamerelease').val(),
                   locator: 'list',
                   totalNumberLocator: function(response) {
                         // you can return totalNumber by analyzing response content
@@ -141,7 +141,7 @@
       function othertop5view(evt) {
             clearmenu(evt);
             $.ajax({
-            url: "/bestof/sav",
+            url: "/bestof/"+$('gamerelease').val(),
             type: "GET",
             data: '',
             success: function(resultdata) {
@@ -205,3 +205,27 @@
              // myGraph.dagMode('td');
              // myGraph.graphData(seqdataset);           
         }
+function searchnamelist(playername) {
+      $.ajax({
+            url: "/searchplayer/"+$('#gamerelease').val(),
+            type: "POST",
+            data: {'playername':playername},
+            success: function(resultdata) {
+                  var html = "";
+                  // html = "<div id=\"myresult\" style=\"width:200px; height:100px; overflow:auto\">";
+                  if (resultdata.result) {
+                        
+                        // $myres .=var_dump($namearray);
+                        for(var i=0 ;i < resultdata.result.length; ++i) {
+                              html += "<a href=\"javascript:void(0)\" onclick=\"document.getElementById('filterplayername').value='"+resultdata.result[i]['name']+"';\">"+resultdata.result[i]['name']+"</a><br>";
+                        }
+                       
+                  }
+                  // html += "</div>";
+                  console.log(html);
+                  $('#nameauto').html(html) ;
+            }
+      });  
+ 
+
+}

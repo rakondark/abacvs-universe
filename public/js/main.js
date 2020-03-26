@@ -1,6 +1,6 @@
 var filepos = 0;
 var sequence,result ;
-var user={sid:0,limstart:1,limlength:2};
+var user={sid:0,limstart:1,limlength:10};
 var elem = 0;
 var elmentresult =0;
 var myGraph = 0;
@@ -51,7 +51,7 @@ window.onload = function() {
         evt.preventDefault(); evt.stopPropagation(); 
     }, false);
     dropArea.addEventListener("drop", function (evt) {
-        if ((document.getElementById("email").value).search("@") || document.getElementById("email").value == "") { 
+        if (!(document.getElementById("email").value).search("@") || document.getElementById("email").value == "") { 
             alert('Please Enter a valid Group@YourID. include @ sign pls.');
         } else {
             traverseFiles(evt.dataTransfer.files);
@@ -90,6 +90,13 @@ window.onload = function() {
         var optionSelected = $("option:selected", this);
         loadlistres('sav');
     });	
+    $('#filterplayername').autocomplete({
+        serviceUrl: '/searchplayer/'+$('#gamerelease').val(),
+        minChars:3,
+        onSelect: function (suggestion) {
+            // alert('You selected: ' + suggestion.value + ', ' + suggestion.data);
+        }
+    });
     $.ajax({
         url: "/graph/3dforceraw",
         type: "GET",

@@ -107,7 +107,7 @@ app.post('/upload', async (req, res) => {
     const resultsbody = await query(conn, insertbody,[todos]).catch(console.log);
       //console.log("INSERT BODY");
       conn.close();
-    res.send({status:'new',md5:mymd5});
+    res.send({status:'new',md5:mymd5,sid:resultshead.insertId});
   } else {
     conn.close();
     res.send({status:'exists',md5:mymd5});
@@ -460,4 +460,25 @@ app.get('/bestof/:id', async (req, res) => {
           });
   }
  })
+ // CHECK FOR MD5 EXISTS
+app.get('/searchplayer/:id', async (req, res) => {
+  if (req.params.id !== 'undefined'){
+      // var mymd5 = req.body.md5;
+    var myext =req.params.id;
+    var player = req.query.query;
+    // console.log(mysequence.exeversion);
+    const conn = await connection(dbConfig).catch(e => {}); 
+    // check if md5 exists
+    var selectplayer = "SELECT DISTINCT name FROM `abacvs_seqbody_"+myext+"` WHERE `name`LIKE ? ";
+    var todos=['%'+player+'%'];
+    const resultsselectplayer = await query(conn, selectplayer,todos).catch(console.log);
+    // check if no md5
+    var theresult = [];
+    for (var i=0; i < resultsselectplayer.length;++i) {
+      theresult.push({'value':resultsselectplayer[i].name,'data':resultsselectplayer[i].name})
+    }
+    conn.close();
+    res.json({"query": "Unit","suggestions":theresult});
+  }
+})
 app.listen(port, () => console.log(`Example app listening on port ${port}!`))

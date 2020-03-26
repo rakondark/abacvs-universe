@@ -3,15 +3,16 @@
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" >
 <script src="/js/jquery/3.4.1/jquery.min.js"></script>
+<script src="/js/jquery/jquery.autocomplete.min.js"></script>
 <script src="/js/mustache/2.3.0/mustache.min.js"></script>
 <script src="/js/crypto/3.1.2/rollups/md5.js"></script>
 <script src="/js/pagination/2.1.5/pagination.min.js"></script>
 <script src="/js/sequence/seqread.js"></script>
 <script src="/js/sequence/seqoutmust.js"></script>
 <script src="/js/sequence/sequpload.js"></script>
-<script src="/js/three.js"></script>
-<script src="/js/three-spritetext.min.js"></script>
-<script src="/js/3d-force-graph.min.js"></script>
+<script src="/js/three/three.js"></script>
+<script src="/js/three/three-spritetext.min.js"></script>
+<script src="/js/three/3d-force-graph.min.js"></script>
 <script src="/js/sequence/seqquery.js"></script>
 <script src="/js/sequence/seqindex.js"></script>
 <script src="/js/main.js"></script>
@@ -46,6 +47,7 @@
             <div class="w3-third">
 
                   <label>Player</label><input id="filterplayername" name="filterplayername"  class="w3-input  w3-card" type="text" size="20" placeholder="Name" >
+                  
                   <label>Player Filters</label>
                   <div class="w3-row">
                        
@@ -72,8 +74,8 @@
                   </div>
                   <label>Result Max Rows each Page</label>
                   <select class="w3-select  w3-card" id="seldatalength" name="seldatalength" >
-                        <option selected>2</option>
-                        <option>10</option>
+                        <option >2</option>
+                        <option selected>10</option>
                         <option>25</option>
                         <option>50</option>
                         <option>100</option>
@@ -121,7 +123,11 @@
                   </div>
                   <div class="w3-row">
                   <div  class="w3-full w3-center"><p>
-                        <button id="loadbutton" class="w3-bar-item w3-button  w3-card tablink "  onclick="loadlist(event,'sav')">Start Search</button>
+                        <button id="loadbutton" class="w3-bar-item w3-button  w3-card tablink "  onclick="loadlist(event)">Start Search</button>
+                        <select class="w3-select  w3-card" id="gamerelease" name="gamerelease" >
+                              <option value="sav" selected >Remastered</option>
+                              <option value="sec" >Original</option>
+                        </select>
                   </p>
                   </div>
                   </div>
