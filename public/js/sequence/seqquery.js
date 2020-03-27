@@ -186,8 +186,8 @@ Object.keys(seqquerydata).forEach(function(key,index) {
     for (var i=0 ; i < seqquerydata[key].length; ++i) {
         var datarec = { "id":key+(i+1),
                         "user":key,
-                        "description":''+(i+1)+'. '+seqquerydata[key][i].name+' '+seqquerydata[key][i][key],
-                        "brief":seqquerydata[key][i].dataset
+                        "description":''+(i+1)+'. '+seqquerydata[key][i].name+' '+seqquerydata[key][i].datavalue,
+                        "brief":'false'
         };
         nodeing.nodes.push(datarec);
         nodeing.links.push({source:key+(i+1),target:key+i});

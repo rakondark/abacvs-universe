@@ -83,7 +83,7 @@
                               links: [...links, ...links]
                         };
                         */
-                        myGraph.dagMode('td');
+                        // myGraph.dagMode('td');
                         myGraph.graphData(seqdataset);                          
                   }
             })
@@ -141,7 +141,7 @@
       function othertop5view(evt) {
             clearmenu(evt);
             $.ajax({
-            url: "/bestof/"+$('gamerelease').val(),
+            url: "/bestof/"+$('#gamerelease').val(),
             type: "GET",
             data: '',
             success: function(resultdata) {

@@ -407,19 +407,44 @@ app.get('/bestof/:id', async (req, res) => {
                         JOIN `abacvs_files_"+myext+"` AS seqf ON seqh.uid = seqf.idx  \
                         JOIN  `abacvs_seqbody_"+myext+"` AS seqb ON seqb.sequenze = seqh.idx  \
                         LEFT JOIN abacvs_karten AS seqk ON seqh.karte=seqk.mapid \
-                        \
+                        GROUP BY seqb.name \
                         ORDER BY "+highval+" desc LIMIT 5";
                         return selecthigh;
   }
   function playerselecter(highval) {
-    var selecthigh =  "SELECT seqh.idx ,seqh.dataset,seqb.name,seqb.rasse,"+highval.field+"  FROM `abacvs_seqhead_"+myext+"` AS seqh  \
+    var selecthigh =  "SELECT seqh.idx ,seqh.dataset,seqb.name,seqb.rasse,"+highval.field+"  FROM `abacvs_seqhead_"+myext+"` AS seqh (SELECT ) \
                          JOIN `abacvs_files_"+myext+"` AS seqf ON seqh.uid = seqf.idx  \
                          JOIN  `abacvs_seqbody_"+myext+"` AS seqb ON seqb.sequenze = seqh.idx  \
                          LEFT JOIN abacvs_karten AS seqk ON seqh.karte=seqk.mapid \
                          GROUP BY seqb.name \
                          ORDER BY "+highval.as+" desc LIMIT 5";
                          return selecthigh;
-   }                       
+   }  
+   function ownsum(extenti) {    
+     var sqlsumselect = " SELECT `seqb`.`idx` AS `idx`, `seqb`.`name` AS `name`, `seqb`.`rasse` AS `rasse`, SUM(`seqb`.`kills`) AS `sumkills`, \
+     SUM(`seqb`.`trains`) AS `sumtrains`,     SUM(`seqb`.`times`) AS `sumtimes`,     SUM(`seqb`.`vills`) AS `sumvills`,     SUM(`seqb`.`points`) AS `sumpoints`,\
+     SUM(`seqb`.`losts`) AS `sumlosts`,     SUM(`seqb`.`skill`) AS `sumskill`,     SUM(`seqb`.`wins`) AS `sumwins`,     SUM(`seqb`.`saved`) AS `sumsaved`, \
+     AVG(`seqb`.`kills`) AS `avgkills`,AVG(`seqb`.`trains`) AS `avgtrains`,     AVG(`seqb`.`times`) AS `avgtimes`,     AVG(`seqb`.`vills`) AS `avgvills`,     AVG(`seqb`.`points`) AS `avgpoints`,     AVG(`seqb`.`losts`) AS `avglosts`,     AVG(`seqb`.`skill`) AS `avgskill`,  \
+     MAX(`seqb`.`kills`) AS `maxkills`,MAX(`seqb`.`trains`) AS `maxtrains`,     MAX(`seqb`.`times`) AS `maxtimes`,     MAX(`seqb`.`vills`) AS `maxvills`,     MAX(`seqb`.`points`) AS `maxpoints`,     MAX(`seqb`.`losts`) AS `maxlosts`,     MAX(`seqb`.`skill`) AS `maxskill` \
+     FROM      `praetorians`.`abacvs_seqbody_"+extenti+"` `seqb`  GROUP BY     `seqb`.`name` ";
+         return  sqlsumselect;
+   }
+   const resultssqlsumselect = await query(conn, ownsum(myext)).catch(console.log);
+   var resultsum = {'sumkills':[],'sumtrains':[],'sumtimes':[],'sumvills':[],'sumpoints':[],'sumlosts':[],'sumskill':[],'sumwins':[],'sumsaved':[],'avgkills':[],'avgtrains':[],'avgtimes':[],'avgvills':[],'avgpoints':[],'avglosts':[],'avgskill':[],'maxkills':[],'maxtrains':[],'maxtimes':[],'maxvills':[],'maxpoints':[],'maxlosts':[],'maxskill':[]};
+   var ergs = ['sumkills','sumtrains','sumtimes','sumvills','sumpoints','sumlosts','sumskill','sumwins','sumsaved','avgkills','avgtrains','avgtimes','avgvills','avgpoints','avglosts','avgskill','maxkills','maxtrains','maxtimes','maxvills','maxpoints','maxlosts','maxskill'];
+   for (var ie=0; ie<ergs.length;++ie) {
+    var mysumselect = resultssqlsumselect.sort(function(a, b) {
+      var an = parseInt(a[ergs[ie]]);
+      var bn = parseInt(b[ergs[ie]]);
+      return (an == bn) ? 0: (an < bn) ? 1:-1;
+    });
+    for (var ix=0; ix < 5;++ix) {
+      if (typeof mysumselect[ix][ergs[ie]] !== "undefined") {
+        resultsum[ergs[ie]].push({'name':mysumselect[ix]["name"],"datavalue":mysumselect[ix][ergs[ie]]});
+      }
+    }
+   }
+   
    /*
    SELECT seqh.idx ,seqh.dataset,seqb.name,seqb.rasse,SUM(seqb.skill) as sumskill  FROM `abacvs_seqhead_save` AS seqh 
                          JOIN `abacvs_files_sav` AS seqf ON seqh.uid = seqf.idx  
@@ -428,6 +453,7 @@ app.get('/bestof/:id', async (req, res) => {
                          GROUP BY seqb.name 
                          ORDER BY sumskill desc LIMIT 5
    */
+   /*
   const resultsselecthighskill = await query(conn, maxselecter('seqb.skill ')).catch(console.log);
   const resultsselecthighscore = await query(conn, maxselecter('seqb.points  ')).catch(console.log);
   const resultsselecthighkill = await query(conn, maxselecter('seqb.kills  ')).catch(console.log);
@@ -452,12 +478,15 @@ app.get('/bestof/:id', async (req, res) => {
   const resultsselecthighavgtimes = await query(conn, playerselecter({field:'AVG(seqb.times) as avgtimes',as:'avgtimes'})).catch(console.log);
    conn.close();
   // check if no md5
+  /*
    res.json({'skill':resultsselecthighskill,'kills':resultsselecthighkill,'points':resultsselecthighscore,'losts':resultsselecthighlost,
               'trains':resultsselecthightrain,'times':resultsselecthightime,'sumskill':resultsselecthighsumskill,'gamescount':resultsselecthighgamecount,'gameswin':resultsselecthighgamewin,
             'sumpoints':resultsselecthighsumpoints,'sumkills':resultsselecthighsumkills,'sumlosts':resultsselecthighsumlosts,'sumtrains':resultsselecthighsumtrains,'sumtimes':resultsselecthighsumtimes,
             'avgskill':resultsselecthighavgskill,'avgpoints':resultsselecthighavgpoints,'avgkills':resultsselecthighavgkills,'avglosts':resultsselecthighavglosts,'avgtrains':resultsselecthighavgtrains,'avgtimes':resultsselecthighavgtimes
               
           });
+          */
+  res.json(resultsum);
   }
  })
  // CHECK FOR MD5 EXISTS

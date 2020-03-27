@@ -67,31 +67,32 @@ window.onload = function() {
     resetForms();
     $('#seldatalength').on('change', function (e) {
         var optionSelected = $("option:selected", this);
-        user.limlength = parseInt(this.value);
-        loadlistres('sav');
+        user.limlength = parseInt(optionSelected.val());
+        loadlistres($('#gamerelease option:selected').val());
     });
     $('#filtercpuskill').on('change', function (e) {
-        var optionSelected = $("option:selected", this);
-        loadlistres('sav');
+        loadlistres($('#gamerelease option:selected').val());
     });
     $('#filterplycount').on('change', function (e) {
-        var optionSelected = $("option:selected", this);
-        loadlistres('sav');
+        loadlistres($('#gamerelease option:selected').val());
     });
     $('#filtersiege').on('change', function (e) {
-        var optionSelected = $("option:selected", this);
-        loadlistres('sav');
+        loadlistres($('#gamerelease option:selected').val());
     });
     $('#orderfield').on('change', function (e) {
-        var optionSelected = $("option:selected", this);
-        loadlistres('sav');
+        loadlistres($('#gamerelease option:selected').val());
     });
     $('#orderorder').on('change', function (e) {
-        var optionSelected = $("option:selected", this);
-        loadlistres('sav');
+        loadlistres($('#gamerelease option:selected').val());
+    });	
+    $('#gamerelease').on('change', function (e) {
+        $('#filterplayername').autocomplete({
+            serviceUrl: '/searchplayer/'+$('#gamerelease option:selected').val()
+        });
+        loadlistres();
     });	
     $('#filterplayername').autocomplete({
-        serviceUrl: '/searchplayer/'+$('#gamerelease').val(),
+        serviceUrl: '/searchplayer/'+$('#gamerelease option:selected').val(),
         minChars:3,
         onSelect: function (suggestion) {
             // alert('You selected: ' + suggestion.value + ', ' + suggestion.data);
@@ -120,7 +121,7 @@ window.onload = function() {
           .nodeAutoColorBy('user')
           .nodeLabel(node => asequencerem(JSON.parse(`${node.brief}`),false,""))
           .onNodeHover(node => elem.style.cursor = node ? 'pointer' : null)
-          .onNodeClick(node => window.open('download/sav/'+(JSON.parse(`${node.brief}`)).headid, '_self'))
+          .onNodeClick(node => (typeof `${node.brief}` === "undefined") ? window.open('download/sav/'+(JSON.parse(`${node.brief}`)).headid, '_self'):null)
           .nodeThreeObject(node => {
                 // use a sphere as a drag handle
                 const obj = new THREE.Mesh(
