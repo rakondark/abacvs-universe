@@ -22,6 +22,9 @@ database
 * ondemand filter and top5 builder , 
 * 3D Universe View (3D forces view) , 
 * support old (2003) and new (2020) sequences 
+* groups upload
+* server upload
+* access secret key für upload and request
  
 ### file store 
 
