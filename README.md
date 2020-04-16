@@ -2,7 +2,10 @@
  praetorians abacvs universe
  
 requirements : 
- node.js , some js frameworks like three.js, three-spritetext.js, 3d-force-graph.js , jquery.js , pagination.js
+ node.js , some js frameworks like 
+ mustache.js for logicless template, 
+ three.js, three-spritetext.js, 3d-force-graph.js for the 3D stuff
+ jquery.js , pagination.js for the ajax stuff
  mysql database
  flow of love 
  
