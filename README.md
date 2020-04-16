@@ -26,6 +26,10 @@ database
 ### file store 
 
 * SQL compresse(base64 string) into database
+
+### upload api
+
+* access for server/custom sequence upload  
  
  
  
