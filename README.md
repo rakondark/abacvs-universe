@@ -6,4 +6,10 @@ requirements :
  mysql database
  flow of love 
  
+ ability : ondemand filter and top5 builder , 3D Universe View (3D forces view) , support old (2003) and new (2020) sequences 
+ 
+ file store : SQL compresse(base64 string) into database
+ 
+ 
+ 
  
