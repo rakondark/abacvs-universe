@@ -27,6 +27,7 @@ database
 * access secret key für upload and request
 * multifile upload (drag &drop supported)
 * preview upload
+* download directlink
 
  
 ### file store 
