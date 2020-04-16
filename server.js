@@ -95,6 +95,8 @@ app.post('/uploadsequence', async (req, res) => {
       var mymd5 = upseq.md5;
       var myemail = req.body.email;
       mysequence["email"] = myemail;
+      mysequence["filename"] = myfilename;
+      mysequence["md5"] = mymd5;
     
       // console.log(mysequence.exeversion);
       const conn = await connection(dbConfig).catch(e => {}); 
