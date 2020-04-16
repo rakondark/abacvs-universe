@@ -1,3 +1,15 @@
+/* gameticks in realtime */
+function _game_time(game_time)
+{
+	total_seconds		=	Math.floor((game_time / 15.16285));
+	days 				= 	Math.floor((total_seconds / (60*60*24)));
+	hourn 				= 	Math.floor((total_seconds / (60*60)));
+	seconds_remaining 	= 	Math.floor(total_seconds-(hourn*(60*60)));
+	minutes 			= 	Math.floor((seconds_remaining / 60));
+	seconds 			= 	seconds_remaining-(minutes*60);
+	/* fill with 0 for 2 digit formated */
+	return (hourn < 10 ? '0'+hourn+':' : hourn+':')+(minutes < 10 ? '0'+minutes+':' : minutes+':')+(seconds < 10 ? '0'+seconds : seconds);
+}
 function morefiles(fil,fileout) {
 
     var file = fil;
@@ -29,7 +41,7 @@ function morefiles(fil,fileout) {
         }
         
         if (extent !== 0) {
-            sequence = getDataFromSeqrem(binary,remaster);
+            sequence = secreader.getDataFromSeqrem(binary,remaster);
             sequence["ext"] = extent; 
             sequence["md5"] = mymd5;
             sequence["filesize"] = file.size;

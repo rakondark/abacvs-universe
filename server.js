@@ -1,5 +1,6 @@
 const express = require('express');
 // const bodyParser = require('body-parser');
+const fileUpload = require('express-fileupload');
 const dbConfig = require('./db/db-conf.js');
 // ↑ exports = {user, password, host, databse}
 // const connection = require('mysql2');
@@ -8,11 +9,13 @@ const query = require('./db/query.js');
 const crypto = require('crypto');
 const app = express();
 const port = 3000;
+const secreader = require('./public/js/sequence/seqread.js');
 var bodyParser = require('body-parser');
-
-
-
-
+app.use(function(req, res, next) {
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+  next();
+});
 app.use( bodyParser.json({     // to support JSON-encoded bodies
   limit: '50mb', extended: true
 }) );       // to support JSON-encoded bodies
@@ -21,6 +24,10 @@ app.use(bodyParser.urlencoded({     // to support URL-encoded bodies
 }));
 // public stuff
 app.use(express.static('public'));
+// enable files upload
+app.use(fileUpload({
+  createParentPath: true
+}));
 // app.use(bodyParser.json());
 // app.set('view engine','jade'); //Sets jade as the View Engine / Template Engine
 app.set('view engine','ejs');
@@ -46,10 +53,128 @@ app.get('/',function(req, res){
 app.get('/api', async (req, res) => {
   const conn = await connection(dbConfig).catch(e => {}) 
   const results = await query(conn, 'SELECT * FROM abacvs_seqhead LIMIT 1,10').catch(console.log);
-  conn.close();
+  await conn.end();
+  // conn.close();
   res.json({ results });
 })
 
+app.post('/uploadsequence', async (req, res) => {
+  var  binary="";
+  var sequence = [];
+  var doup = false;
+  var fext = "";
+  try {
+    if(!req.files) {
+        res.send({
+            status: false,
+            message: 'No file uploaded'
+        });
+    } else {
+        //Use the name of the input field (i.e. "avatar") to retrieve the uploaded file
+        let upseq = req.files.file;
+        var fext = upseq.name.substr(upseq.name.length - 3);
+
+        for (var i = 0; i < upseq.data.length; i++) {
+          binary += String.fromCharCode(upseq.data[i]);
+        }
+        if (fext== 'sav') { 
+          sequence = secreader.getDataFromSeqrem(binary,true);
+          doup = true;
+        }
+        if (fext== 'sec') { 
+           sequence = secreader.getDataFromSeqrem(binary,false);
+           doup= true;
+        }        
+    if (doup && req.body.email != '') {
+      var myfile = new Buffer.from(binary, 'binary').toString('base64');
+    
+      var mysequence = sequence;
+      var myfilename = upseq.name;
+      var myfilesize = upseq.size;
+      var myfileext = fext;
+      var mymd5 = upseq.md5;
+      var myemail = req.body.email;
+      mysequence["email"] = myemail;
+    
+      // console.log(mysequence.exeversion);
+      const conn = await connection(dbConfig).catch(e => {}); 
+      // let hash = crypto.createHash('md5').update(req.body.myfile).digest("hex");
+      // check if md5 exists
+      var selectmd5 = "SELECT `md5` FROM `abacvs_files_"+myfileext+"` WHERE `md5`= ?; ";
+      var todos=[mymd5];
+      const resultsselectmd5 = await query(conn, selectmd5,todos).catch(console.log);
+      // check if no md5
+      if (resultsselectmd5.length === 0) {
+        // insert filedata
+        var insertstr = "INSERT INTO `abacvs_files_"+myfileext+"` ( `oldname`, `ext`, `md5`, `email`, `size`, `download`, `lastdown`, `uptime`, `rawdata`) \
+                      VALUES ( ?,  ?,  ?, ?,  ?,  '0', NOW(),  NOW(),COMPRESS(?)); ";
+        var todos = [ myfilename,myfileext,mymd5,myemail,myfilesize,myfile];
+        const resultsfile = await query(conn, insertstr,todos).catch(console.log);
+        //console.log("INSERT FILE");
+        //console.log(results.insertId);
+        // res.json({ results });
+        var inserthead = "INSERT INTO `abacvs_seqhead_"+myfileext+"` \
+                      ( `uid`, `version`, `gtime`, `datum`, `zeit`, `karte`, `cpuskill`, `players`, `kategori`, \
+                      `towers`, `catapults`, `ballistas`, `rams`, `dataset`) \
+                      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?) ";
+        var todos = [resultsfile.insertId,mysequence.exeversion,mysequence.nallTime,mysequence.gamedate,mysequence.game_time,mysequence.mapa,mysequence.cpuskill,mysequence.playerCounter,mysequence.kategori,mysequence.tow,mysequence.cat,mysequence.bal,mysequence.ram,''];  
+        const resultshead = await query(conn, inserthead,todos).catch(console.log);
+        mysequence["fileid"] = resultsfile.insertId;
+        mysequence["headid"] = resultshead.insertId;
+        mysequence["email"]=(mysequence["email"].split('@'))[0];
+        var todos=[mysequence.mapa];
+        const resultkarte = await query(conn, 'SELECT filename FROM abacvs_karten WHERE mapid = ?',todos).catch(console.log);
+        mysequence["karteen"]=resultkarte[0].filename;
+        var todoshead = [JSON.stringify(mysequence),resultshead.insertId];
+        var updatehead = "UPDATE `abacvs_seqhead_"+myfileext+"` set `dataset`= ? WHERE `idx`= ? ";
+        const resultupdatehead = await query(conn, updatehead,todoshead).catch(console.log);
+
+        //console.log("INSERT HEAD");
+        var insertbody = "INSERT INTO `abacvs_seqbody_"+myfileext+"` \
+                          (`cpu`, `steamid`, `name`, `rasse`, `losts`, `kills`, `trains`, `times`, `vills`, `points`, `teams`, `colors`, `wins`, `saved`,  `sequenze`, `skill`) \
+                          VALUES ? ";
+        var todos = [];  
+        for (var iplayer=0 ; iplayer < mysequence['playerCounter'] ; ++iplayer) 
+        {
+          var aktplayer = mysequence.troops[iplayer];
+          var pskill = Math.floor((aktplayer.score*10000/mysequence.nallTime));
+          var myrow =[aktplayer.cpu,aktplayer.steamid,aktplayer.name,aktplayer.race,aktplayer.losts,aktplayer.kills,aktplayer.train,aktplayer.time,aktplayer.villa,aktplayer.score,aktplayer.team,aktplayer.color,aktplayer.wins,aktplayer.saved,resultshead.insertId,pskill];
+          todos.push(myrow);
+        }
+        const resultsbody = await query(conn, insertbody,[todos]).catch(console.log);
+        
+          //console.log("INSERT BODY");
+          // conn.close();
+                  //send response
+                  res.send({
+                    status: true,
+                    message: 'File is uploaded',
+                    data: {
+                        name: myfilename,
+                        md5: mymd5,
+                        size: myfilesize,
+                        uploadid:resultshead.insertId,
+                        ext:myfileext,
+                        status:'new'
+                    }
+                });
+
+      } else {
+        // conn.close();
+        res.send({status:'exists',md5:mymd5});
+      }
+      await conn.end();
+
+
+      } else {
+         // conn.close();
+         res.send({status:'error',md5:'no file or no email'});       
+      }
+    }
+} catch (err) {
+  res.status(500).send(err);
+}
+})
 app.post('/upload', async (req, res) => {
   var myfile = req.body.myfile;
   var mysequence = JSON.parse(req.body.myfiledata);
@@ -66,6 +191,7 @@ app.post('/upload', async (req, res) => {
   // check if md5 exists
   var selectmd5 = "SELECT `md5` FROM `abacvs_files_"+myfileext+"` WHERE `md5`= ?; ";
   var todos=[mymd5];
+  // console.log(mymd5);
   const resultsselectmd5 = await query(conn, selectmd5,todos).catch(console.log);
   // check if no md5
   if (resultsselectmd5.length === 0) {
@@ -81,7 +207,8 @@ app.post('/upload', async (req, res) => {
                   ( `uid`, `version`, `gtime`, `datum`, `zeit`, `karte`, `cpuskill`, `players`, `kategori`, \
                   `towers`, `catapults`, `ballistas`, `rams`, `dataset`) \
                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?) ";
-                  var todos = [resultsfile.insertId,mysequence.exeversion,mysequence.nallTime,mysequence.gamedate,mysequence.game_time,mysequence.mapa,mysequence.cpuskill,mysequence.playerCounter,mysequence.kategori,mysequence.tow,mysequence.cat,mysequence.bal,mysequence.ram,req.body.myfiledata];  const resultshead = await query(conn, inserthead,todos).catch(console.log);
+    var todos = [resultsfile.insertId,mysequence.exeversion,mysequence.nallTime,mysequence.gamedate,mysequence.game_time,mysequence.mapa,mysequence.cpuskill,mysequence.playerCounter,mysequence.kategori,mysequence.tow,mysequence.cat,mysequence.bal,mysequence.ram,req.body.myfiledata];  
+    const resultshead = await query(conn, inserthead,todos).catch(console.log);
     mysequence["fileid"] = resultsfile.insertId;
     mysequence["headid"] = resultshead.insertId;
     mysequence["email"]=(mysequence["email"].split('@'))[0];
@@ -105,14 +232,15 @@ app.post('/upload', async (req, res) => {
       todos.push(myrow);
     }
     const resultsbody = await query(conn, insertbody,[todos]).catch(console.log);
+    
       //console.log("INSERT BODY");
-      conn.close();
+      // conn.close();
     res.send({status:'new',md5:mymd5,sid:resultshead.insertId});
   } else {
-    conn.close();
+    // conn.close();
     res.send({status:'exists',md5:mymd5});
   }
-
+  await conn.end();
 
 })
 // CHECK FOR MD5 EXISTS
@@ -125,8 +253,9 @@ app.post('/upload/md5', async (req, res) => {
   var selectmd5 = "SELECT `md5` FROM `abacvs_files_"+myext+"` WHERE `md5`= ? ";
   var todos=[mymd5];
   const resultsselectmd5 = await query(conn, selectmd5,todos).catch(console.log);
+  await conn.end();
   // check if no md5
-  conn.close();
+  // conn.close();
   if (resultsselectmd5.length === 0) {
     res.send({status:'new',md5:mymd5});
   } else {
@@ -149,6 +278,7 @@ app.get('/graph/3dforce', async (req, res) => {
                    ORDER BY seqf.email asc,seqb.sequenze desc \
                    Limit 100; ";
    const resultsselectseq100 = await query(conn, selectseq100).catch(console.log);
+   await conn.end();
   // check if no md5
   var nodeing = {nodes:[],links:[]}; 
   var nextseq = 0;
@@ -208,15 +338,15 @@ app.get('/graph/3dforceraw', async (req, res) => {
    // console.log(mysequence.exeversion);
   const conn = await connection(dbConfig).catch(e => {}); 
   // check if md5 exists
-  var selectseq100 = "SELECT seqh.idx AS idx, seqh.uid, seqh.version,  seqh.datum, seqh.zeit, seqh.kategori AS kat, seqh.karte AS karte, SUBSTR( seqf.email,1, (LENGTH(seqf.email) - ( LENGTH(seqf.email) -( INSTR(seqf.email,'@') ) )-1) ) as email, seqh.dataset AS dataset,seqb.name AS name ,seqb.skill AS skill,seqb.sequenze AS sequenze ,seqb.idx AS bidx,seqk.filename as karteen \
+  var selectseq100 = "SELECT seqh.idx AS idx, seqh.uid, seqh.version,  seqh.datum, seqh.zeit, seqh.kategori AS kat, seqh.karte AS karte, SUBSTR( seqf.email,1, (LENGTH(seqf.email) - ( LENGTH(seqf.email) -( INSTR(seqf.email,'@') ) )-1) ) as email, seqh.dataset AS dataset,seqb.name AS name ,seqb.skill AS skill,seqb.sequenze AS sequenze ,seqb.idx AS bidx \
                    FROM `abacvs_seqhead_"+myext+"` AS seqh  \
                    JOIN `abacvs_files_"+myext+"` AS seqf ON seqh.uid = seqf.idx  \
                    JOIN  `abacvs_seqbody_"+myext+"` AS seqb ON seqb.sequenze = seqh.idx  \
-                   JOIN abacvs_karten AS seqk ON seqh.karte=seqk.mapid \
                    ORDER BY seqf.email asc,seqb.sequenze desc \
                    Limit 500; ";
    const resultsselectseq100 = await query(conn, selectseq100).catch(console.log);
-  conn.close();
+   await conn.end();
+  // conn.close();
   // check if no md5
    res.json( resultsselectseq100);
  })
@@ -229,14 +359,14 @@ app.get('/graph/3dforcenoply', async (req, res) => {
    // console.log(mysequence.exeversion);
   const conn = await connection(dbConfig).catch(e => {}); 
   // check if md5 exists
-  var selectseqheadfile = "SELECT seqh.idx AS idx, seqh.uid, seqh.version,  seqh.datum, seqh.zeit, seqh.kategori AS kate, seqh.karte AS karte, SUBSTR( seqf.email,1, (LENGTH(seqf.email) - ( LENGTH(seqf.email) -( INSTR(seqf.email,'@') ) )-1) ) as email, seqh.dataset AS dataset,seqk.filename as karteen,seqf.oldname as sequencefilename \
+  var selectseqheadfile = "SELECT seqh.idx AS idx, seqh.uid, seqh.version,  seqh.datum, seqh.zeit, seqh.kategori AS kate, seqh.karte AS karte, SUBSTR( seqf.email,1, (LENGTH(seqf.email) - ( LENGTH(seqf.email) -( INSTR(seqf.email,'@') ) )-1) ) as email, seqh.dataset AS dataset,seqf.oldname as sequencefilename \
                    FROM `abacvs_seqhead_"+myext+"` AS seqh  \
                    JOIN `abacvs_files_"+myext+"` AS seqf ON seqh.uid = seqf.idx \
-                   LEFT JOIN abacvs_karten AS seqk ON seqh.karte=seqk.mapid \
                    ORDER BY seqf.email asc \
                    LIMIT 500 ";
    const resultselectseqheadfile = await query(conn, selectseqheadfile).catch(console.log);
-   conn.close();
+   await conn.end();
+   // conn.close();
   // check if no md5
    res.json( resultselectseqheadfile);
  });
@@ -324,24 +454,22 @@ app.post('/list/:id', async (req, res) => {
   var selectrowcount =  "SELECT COUNT(DISTINCT seqh.uid) as zahler  FROM `abacvs_seqhead_"+myext+"` AS seqh  \
                         JOIN `abacvs_files_"+myext+"` AS seqf ON seqh.uid = seqf.idx  \
                         JOIN  `abacvs_seqbody_"+myext+"` AS seqb ON seqb.sequenze = seqh.idx  \
-                        LEFT JOIN abacvs_karten AS seqk ON seqh.karte=seqk.mapid \
                         "+where;
                          
   const resultsselectrowcount = await query(conn, selectrowcount,sqldata).catch(console.log);
   // check if md5 exists
-  var selectseqlist = "SELECT seqh.idx,seqh.uid,seqh.version,seqh.gtime,seqh.datum,seqh.zeit,seqh.karte,seqh.cpuskill,seqh.players,seqh.kategori,seqh.towers,seqh.catapults,seqh.ballistas,seqh.rams,seqh.dataset,seqf.oldname,seqf.ext,seqf.md5,SUBSTR( seqf.email,1, (LENGTH(seqf.email) - ( LENGTH(seqf.email) -( INSTR(seqf.email,'@') ) )-1) ) as email,seqf.size,seqf.download,seqf.lastdown,seqf.uptime,seqk.filename as karteen,seqk.spmax,seqk.mapdl,seqk.author,seqk.includedin,seqk.terrain  \
+  var selectseqlist = "SELECT seqh.idx,seqh.uid,seqh.version,seqh.gtime,seqh.datum,seqh.zeit,seqh.karte,seqh.cpuskill,seqh.players,seqh.kategori,seqh.towers,seqh.catapults,seqh.ballistas,seqh.rams,seqh.dataset,seqf.oldname,seqf.ext,seqf.md5,SUBSTR( seqf.email,1, (LENGTH(seqf.email) - ( LENGTH(seqf.email) -( INSTR(seqf.email,'@') ) )-1) ) as email,seqf.size,seqf.download,seqf.lastdown,seqf.uptime  \
                       FROM `abacvs_seqhead_"+myext+"` AS seqh  \
                       JOIN `abacvs_files_"+myext+"` AS seqf ON seqh.uid = seqf.idx  \
                       JOIN  `abacvs_seqbody_"+myext+"` AS seqb ON seqb.sequenze = seqh.idx  \
-                      LEFT JOIN abacvs_karten AS seqk ON seqh.karte=seqk.mapid \
                        "+where+" \
                       GROUP BY seqh.idx \
                        "+order+"  \
                    LIMIT ? OFFSET ? ";
   
    const resultsselectseqlist = await query(conn, selectseqlist,sqldata).catch(console.log);
-
-   conn.close();
+   await conn.end();
+   // conn.close();
   // check if no md5
    res.json({'count':resultsselectrowcount[0].zahler,'limstart':limstart, 'limlength':limlength,'list':resultsselectseqlist});
   }
@@ -350,10 +478,11 @@ app.post('/list/:id', async (req, res) => {
 app.get('/download/sec/:id', async (req, res) => {
   if (req.params.id !== 'undefined'){
     const conn = await connection(dbConfig).catch(e => {}) ;
-    const results = await query(conn, 'SELECT oldname,UNCOMPRESS(rawdata) as rawdat FROM abacvs_files_sec idx='+req.params.id+' ORDER BY idx desc LIMIT 1').catch(console.log);
+    const results = await query(conn, 'SELECT oldname,UNCOMPRESS(rawdata) as rawdat FROM abacvs_files_sec WHERE idx='+req.params.id+' ORDER BY idx desc LIMIT 1').catch(console.log);
     // res.json({ results });
     const resultupdatedownload = await query(conn, 'UPDATE abacvs_files_sec SET download=download+1,lastdown=NOW() WHERE idx='+req.params.id ).catch(console.log);  
-    conn.close();
+    await conn.end();
+    // conn.close();
         myfilename = results[0].oldname;
         // console.log(myfile);
         var buf = Buffer.from(results[0].rawdat.toString(), 'base64');
@@ -377,7 +506,8 @@ app.get('/download/sav/:id', async (req, res) => {
   const results = await query(conn, 'SELECT oldname,UNCOMPRESS(rawdata) as rawdat FROM abacvs_files_sav WHERE idx='+req.params.id+' ORDER BY idx desc LIMIT 1').catch(console.log);
   // res.json({ results });
   const resultupdatedownload = await query(conn, 'UPDATE abacvs_files_sav  SET download=download+1,lastdown=NOW()  WHERE idx='+req.params.id).catch(console.log);  
-  conn.close();
+  await conn.end();
+  // conn.close();
       myfilename =  results[0].oldname;
       // console.log(myfile);
       var buf = Buffer.from(results[0].rawdat.toString(), 'base64');
@@ -394,8 +524,120 @@ app.get('/download/sav/:id', async (req, res) => {
     }
 
 })
+  // bestof
+
 // CHECK FOR MD5 EXISTS
-app.get('/bestof/:id', async (req, res) => {
+app.post('/bestof/:id', async (req, res) => {
+  if (req.params.id !== 'undefined'){
+  // var mymd5 = req.body.md5;
+  var myext =req.params.id;
+  var myagregat = req.body.myagregat;
+  var myfield = req.body.myfield;
+  var myfieldas = req.body.myfieldas;
+
+  const conn = await connection(dbConfig).catch(e => {}) ;
+
+
+
+
+    var sqldata = [];
+    var where = [];
+    if (req.body.filterplayername !=  "") {
+      where += " AND seqb.name LIKE ? ";
+      sqldata.push('%'+req.body.filterplayername+'%');
+    }
+    if (req.body.filteridx !=  "") {
+     // where += " AND seqh.idx =? ";
+      // sqldata.push(req.body.filteridx);
+    }
+    if (req.body.filtercpuskill !=  "") {
+      where += " AND seqh.cpuskill =? ";
+      sqldata.push(req.body.filtercpuskill);
+    }
+    if (req.body.filtergroup !=  "" || req.body.filteryourid !=  "") {
+      where += " AND seqf.email LIKE ? ";
+      sqldata.push('%'+req.body.filtergroup+'\@'+req.body.filteryourid+'%');
+    }
+    if (req.body.filterplayerwin !=  "" ) {
+      where += " AND seqb.wins = ? ";
+      sqldata.push(req.body.filterplayerwin);
+    }
+    if (req.body.filterplayerrace !=  "" ) {
+      where += " AND seqb.rasse LIKE ? ";
+      sqldata.push(req.body.filterplayerrace);
+    }
+    if (req.body.filterplayersaved !=  "" ) {
+      where += " AND seqb.saved = ? ";
+      sqldata.push(req.body.filterplayersaved);
+    }
+    if (req.body.filterplycount !=  "" ) {
+      where += " AND seqh.players = ? ";
+      sqldata.push(req.body.filterplycount);
+    }
+    if (req.body.filterkategori !=  "" ) {
+      where += " AND seqh.kategori LIKE ? ";
+      sqldata.push(req.body.filterkategori);
+    }
+    if (req.body.filtersiege !=  "" ) {
+      if (req.body.filtersiege == 0 ) {
+      where += " AND (seqh.rams = 0 AND seqh.ballistas = 0 AND seqh.catapults = 0 AND seqh.towers = 0)   ";
+      }
+      if (req.body.filtersiege == 1 ) {
+        where += " AND (seqh.rams > 0 OR seqh.ballistas  > 0 OR seqh.catapults  > 0 OR seqh.towers > 0) ";
+        }
+    }
+    if (where != "") {where = " WHERE 1 = 1 "+where;}
+    var order ="";
+    // order = "ORDER BY seqh.idx desc";
+    if (req.body.orderfield !=  "" ) {
+      var orderfieldname ="";
+      var orderfieldorder ="";
+      if (req.body.orderfield == "idx") {orderfieldname ="seqh.idx";}
+      if (req.body.orderfield == "kategori") {orderfieldname ="seqh.kategori";}
+      if (req.body.orderfield == "players") {orderfieldname ="seqh.players";}
+      if (req.body.orderfield == "download") {orderfieldname ="seqf.download";}
+      if (req.body.orderorder == "asc") {
+        orderfieldorder ="asc";
+      } else {
+        orderfieldorder ="desc";
+      }
+      
+     // order = "ORDER BY "+orderfieldname+" "+orderfieldorder;  
+    } 
+    if (req.body.orderfield ==  "0" ) {
+      order = ""; 
+    }
+    // sqldata.push(5,0);
+
+
+    // check if md5 exists
+    var selectseqlist = "SELECT `seqb`.`idx` AS `idx`, `seqb`.`name` AS `name`, `seqb`.`rasse` AS `rasse`, "+myagregat+"("+myfield+") AS "+myfieldas+"  \
+                        FROM `abacvs_seqhead_"+myext+"` AS seqh  \
+                        JOIN  `abacvs_seqbody_"+myext+"` AS seqb ON seqb.sequenze = seqh.idx  \
+                         "+where+" \
+                        GROUP BY `seqb`.`name` \
+                         "+order+"  \
+                         ORDER BY "+myfieldas+" DESC LIMIT 5";
+    
+
+
+
+    const resultssqlsumselect = await query(conn, selectseqlist,sqldata).catch(console.log);
+    await conn.end();
+    var resultsum = {};
+    resultsum[myfieldas]=[];
+    for (var ix=0; ix < resultssqlsumselect.length;++ix) {
+      if (typeof resultssqlsumselect[ix][myfieldas] !== "undefined") {
+        resultsum[myfieldas].push({'name':resultssqlsumselect[ix]["name"],"datavalue":resultssqlsumselect[ix][myfieldas]});
+      }
+    }
+    res.status(200).json(resultsum);
+   }
+   
+})
+
+// CHECK FOR MD5 EXISTS
+app.get('/old_bestof/:id', async (req, res) => {
   if (req.params.id !== 'undefined'){
   // var mymd5 = req.body.md5;
   var myext =req.params.id;
@@ -406,7 +648,6 @@ app.get('/bestof/:id', async (req, res) => {
    var selecthigh =  "SELECT seqh.idx ,seqh.dataset,seqb.name,seqb.rasse,"+highval+"  FROM `abacvs_seqhead_"+myext+"` AS seqh  \
                         JOIN `abacvs_files_"+myext+"` AS seqf ON seqh.uid = seqf.idx  \
                         JOIN  `abacvs_seqbody_"+myext+"` AS seqb ON seqb.sequenze = seqh.idx  \
-                        LEFT JOIN abacvs_karten AS seqk ON seqh.karte=seqk.mapid \
                         GROUP BY seqb.name \
                         ORDER BY "+highval+" desc LIMIT 5";
                         return selecthigh;
@@ -415,7 +656,6 @@ app.get('/bestof/:id', async (req, res) => {
     var selecthigh =  "SELECT seqh.idx ,seqh.dataset,seqb.name,seqb.rasse,"+highval.field+"  FROM `abacvs_seqhead_"+myext+"` AS seqh (SELECT ) \
                          JOIN `abacvs_files_"+myext+"` AS seqf ON seqh.uid = seqf.idx  \
                          JOIN  `abacvs_seqbody_"+myext+"` AS seqb ON seqb.sequenze = seqh.idx  \
-                         LEFT JOIN abacvs_karten AS seqk ON seqh.karte=seqk.mapid \
                          GROUP BY seqb.name \
                          ORDER BY "+highval.as+" desc LIMIT 5";
                          return selecthigh;
@@ -430,6 +670,7 @@ app.get('/bestof/:id', async (req, res) => {
          return  sqlsumselect;
    }
    const resultssqlsumselect = await query(conn, ownsum(myext)).catch(console.log);
+   await conn.end();
    var resultsum = {'sumkills':[],'sumtrains':[],'sumtimes':[],'sumvills':[],'sumpoints':[],'sumlosts':[],'sumskill':[],'sumwins':[],'sumsaved':[],'avgkills':[],'avgtrains':[],'avgtimes':[],'avgvills':[],'avgpoints':[],'avglosts':[],'avgskill':[],'maxkills':[],'maxtrains':[],'maxtimes':[],'maxvills':[],'maxpoints':[],'maxlosts':[],'maxskill':[]};
    var ergs = ['sumkills','sumtrains','sumtimes','sumvills','sumpoints','sumlosts','sumskill','sumwins','sumsaved','avgkills','avgtrains','avgtimes','avgvills','avgpoints','avglosts','avgskill','maxkills','maxtrains','maxtimes','maxvills','maxpoints','maxlosts','maxskill'];
    for (var ie=0; ie<ergs.length;++ie) {
@@ -476,7 +717,7 @@ app.get('/bestof/:id', async (req, res) => {
   const resultsselecthighavglosts = await query(conn, playerselecter({field:'AVG(seqb.losts) as avglosts',as:'avglosts'})).catch(console.log);
   const resultsselecthighavgtrains = await query(conn, playerselecter({field:'AVG(seqb.trains) as avgtrains',as:'avgtrains'})).catch(console.log);
   const resultsselecthighavgtimes = await query(conn, playerselecter({field:'AVG(seqb.times) as avgtimes',as:'avgtimes'})).catch(console.log);
-   conn.close();
+   // conn.close();
   // check if no md5
   /*
    res.json({'skill':resultsselecthighskill,'kills':resultsselecthighkill,'points':resultsselecthighscore,'losts':resultsselecthighlost,
@@ -501,13 +742,15 @@ app.get('/searchplayer/:id', async (req, res) => {
     var selectplayer = "SELECT DISTINCT name FROM `abacvs_seqbody_"+myext+"` WHERE `name`LIKE ? ";
     var todos=['%'+player+'%'];
     const resultsselectplayer = await query(conn, selectplayer,todos).catch(console.log);
+    await conn.end();
     // check if no md5
     var theresult = [];
     for (var i=0; i < resultsselectplayer.length;++i) {
       theresult.push({'value':resultsselectplayer[i].name,'data':resultsselectplayer[i].name})
     }
-    conn.close();
+    // conn.close();
     res.json({"query": "Unit","suggestions":theresult});
   }
 })
-app.listen(port, () => console.log(`Example app listening on port ${port}!`))
+// app.keepAliveTimeout = 600 * 1000;
+app.listen(port, () => console.log(`abacvs space listening on port ${port}!`))

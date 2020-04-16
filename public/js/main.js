@@ -110,13 +110,14 @@ window.onload = function() {
                       {compa: "sequenze",compb: "sequenze",source: "sequenze",target: "bidx"}
         ];
         elmentresult = result;
+        
         var nodeing = {nodes:[],links:[]}; 
         var seqdataset = dforcegraphbuild(result,seqqueryconf,nodeing);
         // var seqdataset = dforcegraphbuildRanking(result,seqqueryconf,nodeing);
         myGraph = ForceGraph3D()(elem)
           .graphData(seqdataset)
-          .width(950)
-          .height(600)
+          .width(748)
+          .height(668)
           .enableNodeDrag(false)
           .nodeAutoColorBy('user')
           .nodeLabel(node => asequencerem(JSON.parse(`${node.brief}`),false,""))
@@ -144,7 +145,9 @@ window.onload = function() {
                 }
                 
                 return obj;
-          });
+          })
+          .nodeThreeObjectExtend(false);
+          loadlistres();
 
        }
   });

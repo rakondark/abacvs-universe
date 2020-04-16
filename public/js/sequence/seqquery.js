@@ -38,16 +38,17 @@ for (var i3=0; i3 < seqquerydata.length ; ++i3) {
         }
     }
 }
-
+console.log(seqquerydata[0][0]);
 
 for (var iii=0; iii < seqquerydata.length ; ++iii) {
     if ($.inArray("s"+seqquerydata[iii][seqqueryconf[2].id],nodeing.nodes) == -1) {
         if ( seqquerydata[iii][seqqueryconf[2].nextseq] !== nextseq ) {
+            var karteen = (JSON.parse(seqquerydata[iii]["dataset"])).karteen;
             var datarec = {"id":"s"+seqquerydata[iii][seqqueryconf[2].id],
                 "user":seqquerydata[iii][seqqueryconf[2].user],
                 "description":seqquerydata[iii][seqqueryconf[2].description],
                 "brief":seqquerydata[iii][seqqueryconf[2].brief],
-                "map":seqquerydata[iii]["karteen"]
+                "map":karteen
             };
             // console.log(seqquerydata[iii]);
             nodeing.nodes.push(datarec);   
@@ -107,11 +108,12 @@ function dforcegraphbuildList(seqquerydata,seqqueryconf,nodeing,detail) {
     for (var iii=0; iii < seqquerydata.length ; ++iii) {
         if ($.inArray("s"+seqquerydata[iii][seqqueryconf[1].id],nodeing.nodes) == -1) {
             if ( seqquerydata[iii][seqqueryconf[1].nextseq] !== nextseq ) {
+                var karteen = (JSON.parse(seqquerydata[iii]["dataset"])).karteen;
                 var datarec = {"id":"s"+seqquerydata[iii][seqqueryconf[1].id],
                     "user":seqquerydata[iii][seqqueryconf[1].user],
                     "description":seqquerydata[iii][seqqueryconf[1].description],
                     "brief":seqquerydata[iii][seqqueryconf[1].brief],
-                    "map":seqquerydata[iii][seqqueryconf[1].map]
+                    "map":karteen
                 };
                 // console.log(seqquerydata[iii]);
                 nodeing.nodes.push(datarec);   
@@ -164,35 +166,46 @@ function dforcegraphbuildRanking(seqquerydata,seqqueryconf,nodeing) {
     return nodeing;
 } 
 
-function dforcegraphbuildHigh(seqquerydata,nodeing) {
-    var datarec = {"id":"max",
+function dforcegraphbuildHigh(seqquerydata,nodeing,first) {
+    if (first) {
+        var datarec = {"id":"max",
                     "user":"max",
                     "description":"TOP 5 PLAYER",
                     "brief":'false',
                     "map":''
                     };
-                    nodeing.nodes.push(datarec);
-Object.keys(seqquerydata).forEach(function(key,index) {
-                        // key: the name of the object key
-                        // index: the ordinal position of the key within the object 
-    var datarec = {"id":key+"0",
-                    "user":key,
-                    "description":key,
-                    "brief":'false',
-                    "map":''
-                    };
-    nodeing.nodes.push(datarec);
-    nodeing.links.push({source:key+"0",target:"max"});
-    for (var i=0 ; i < seqquerydata[key].length; ++i) {
-        var datarec = { "id":key+(i+1),
-                        "user":key,
-                        "description":''+(i+1)+'. '+seqquerydata[key][i].name+' '+seqquerydata[key][i].datavalue,
-                        "brief":'false'
-        };
         nodeing.nodes.push(datarec);
-        nodeing.links.push({source:key+(i+1),target:key+i});
-    }
-});
+   }
+    Object.keys(seqquerydata).forEach(function(key,index) {
+                            // key: the name of the object key
+                            // index: the ordinal position of the key within the object 
+                            var datarec = {"id":key+"-1",
+                            "user":key,
+                            "description":key,
+                            "brief":'false',
+                            "map":''
+                    };
+                    nodeing.nodes.push(datarec); 
+                   // nodeing.links.push({source:key+"0",target:key+"5"});
+                    for (var i=0 ; i < seqquerydata[key].length; ++i) {
+                        var idname = "";
+                        if (i== 0) {usrname='first';}else {usrname=key;}
+                        var datarec = { "id":key+i,
+                                        "user":usrname,
+                                        "description":''+(i+1)+'. '+seqquerydata[key][i].name+' '+seqquerydata[key][i].datavalue,
+                                        "brief":'false'
+                        };
+                        nodeing.nodes.push(datarec);
+                       
+                        nodeing.links.push({source:key+(i),target:key+(i-1)});
+                    }
+                    
+                    nodeing.links.push({source:key+"4",target:"max"});
+ 
+                   // nodeing.links.push({source:key+"5",target:key+"0"});
+                   
+        
+    });
     return nodeing;
 } 
 
@@ -226,11 +239,12 @@ function dforcegraphbuildmapdetail(seqquerydata,seqqueryconf,nodeing,detail) {
    }
    
     for (var iii=0; iii < seqquerydata.length ; ++iii) {
+                var karteen = (JSON.parse(seqquerydata[iii]["dataset"])).karteen;
                 var datarec = { "id":"s"+seqquerydata[iii][seqqueryconf[1].id],
                                 "user":seqquerydata[iii][seqqueryconf[2].id],
                                 "description":seqquerydata[iii][seqqueryconf[1].description],
                                 "brief":seqquerydata[iii][seqqueryconf[1].brief],
-                                "map":seqquerydata[iii][seqqueryconf[1].map]
+                                "map":karteen
                 };
                 
                 nodeing.nodes.push(datarec);  

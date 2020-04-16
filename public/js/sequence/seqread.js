@@ -1,8 +1,96 @@
+(function(exports){
+	// helper functions
+	filepos=0;
+/* php ord functions */
+function ord(abyte) 
+{ 
+	return abyte.toString();
+}
+/* php file functions */
+function fgetc(sequence_player_datas) 
+{
+	var oldfpos = filepos;
+	++filepos;
+	return sequence_player_datas.charCodeAt(oldfpos);
+}
+function fread(sequence_player_datas,anzahl)
+{
+			var result;
+			for (var i=0; i < anzahl ; i++) 
+			{
+				result=result+fgetc(sequence_player_datas);
+			}
+			return result;
+}
+function fseek(sequence_player_datas,lastbytes,SEEK_END) 
+{
+			var ende 	= sequence_player_datas.length ;
+			var now 	= ende-lastbytes;
+			filepos 	= now;
+}
+// skip number of string entrys   
+function skipelement(nr,sequence_player_datas) 
+{
+	for (var ni=0; ni < nr; ni++) {id = ord(fread(sequence_player_datas,1)) ;nothing =  {"id":id,"value":getString(sequence_player_datas,1)};}
+}
+/* hex view for byte */
+function mdechex(aByte) 
+{
+	byteStr = aByte.toString(16);
+	if (byteStr.length < 2) {
+		byteStr = "0" + byteStr;
+	}
+  return byteStr;
+}
+/* reads a number byte long */
+function getInteger(sequence_player_datas,bytelong) 
+{
+	anint = 0;
+	if ( bytelong > 0 ) {anint += parseInt(ord(fgetc(sequence_player_datas)));} // 1 byte integer
+	if ( bytelong > 1 ) {anint += parseInt(ord(fgetc(sequence_player_datas)))*256;} // 2 byte integer
+	if ( bytelong > 2 ) {anint += parseInt(ord(fgetc(sequence_player_datas)))*256*256;}  // 3 byte integer
+	if ( bytelong > 3 ) {anint += parseInt(ord(fgetc(sequence_player_datas)))*256*256*256;}  // 4 byte integer
+	return anint;
+}
+/* reads a string with characters are 1 or 2 byte long */
+function getString(sequence_player_datas,bytelong) 
+{
+    var scount = ord(fgetc(sequence_player_datas));
+	var result_string = "";
+	if (scount > 0 ) {
+		for (ii=0 ; ii < scount;ii++) {
+			if (bytelong == 1 ) { // 1 byte character
+				result_string += String.fromCharCode(fgetc(sequence_player_datas));
+			}
+			if (bytelong == 2 ) { // 2 byte character
+				/* todo : read 2 bytes and get UTF-8 */
+				result_string += String.fromCharCode(fgetc(sequence_player_datas));
+				++filepos;
+			}
+		}
+	}
+	return result_string;
+}
+/* gameticks in realtime */
+function _game_time(game_time)
+{
+	total_seconds		=	Math.floor((game_time / 15.16285));
+	days 				= 	Math.floor((total_seconds / (60*60*24)));
+	hourn 				= 	Math.floor((total_seconds / (60*60)));
+	seconds_remaining 	= 	Math.floor(total_seconds-(hourn*(60*60)));
+	minutes 			= 	Math.floor((seconds_remaining / 60));
+	seconds 			= 	seconds_remaining-(minutes*60);
+	/* fill with 0 for 2 digit formated */
+	return (hourn < 10 ? '0'+hourn+':' : hourn+':')+(minutes < 10 ? '0'+minutes+':' : minutes+':')+(seconds < 10 ? '0'+seconds : seconds);
+}
+
+
 // read the sequence statistics
-function getDataFromSeqrem(sequence_player_datas,remastered = false) 
+exports.getDataFromSeqrem = function (sequence_player_datas,remastered = false) 
 {
 		var player_datas={};
 		var nothing=fread(sequence_player_datas,8);
+		
 		player_datas['exeversion'] 		= 		ord(fgetc(sequence_player_datas));
 		nothing=fread(sequence_player_datas,3);
 		player_datas['nallTime'] 		= 		getInteger(sequence_player_datas,4);
@@ -16,6 +104,7 @@ function getDataFromSeqrem(sequence_player_datas,remastered = false)
 	// END ADDED
 		player_datas['playerCounter'] 	= 		getInteger(sequence_player_datas,1);
 		nothing=fread(sequence_player_datas,2);
+		
 		player_datas['troops'] 			= 		new Array();
 		hasCPU = false;
 		for (var ii=0 ; ii < player_datas['playerCounter'] ; ++ii) 
@@ -133,86 +222,5 @@ function getDataFromSeqrem(sequence_player_datas,remastered = false)
         player_datas['kategori']=found;
 	return player_datas;
 }
-// helper functions
-/* php ord functions */
-function ord(abyte) 
-{ 
-	return abyte.toString();
-}
-/* php file functions */
-function fgetc(sequence_player_datas) 
-{
-	var oldfpos = filepos;
-	++filepos;
-	return sequence_player_datas.charCodeAt(oldfpos);
-}
-function fread(sequence_player_datas,anzahl)
-{
-			var result;
-			for (var i=0; i < anzahl ; i++) 
-			{
-				result=result+fgetc(sequence_player_datas);
-			}
-			return result;
-}
-function fseek(sequence_player_datas,lastbytes,SEEK_END) 
-{
-			var ende 	= sequence_player_datas.length ;
-			var now 	= ende-lastbytes;
-			filepos 	= now;
-}
-// skip number of string entrys   
-function skipelement(nr,sequence_player_datas) 
-{
-	for (var ni=0; ni < nr; ni++) {id = ord(fread(sequence_player_datas,1)) ;nothing =  {"id":id,"value":getString(sequence_player_datas,1)};}
-}
-/* hex view for byte */
-function mdechex(aByte) 
-{
-	byteStr = aByte.toString(16);
-	if (byteStr.length < 2) {
-		byteStr = "0" + byteStr;
-	}
-  return byteStr;
-}
-/* reads a number byte long */
-function getInteger(sequence_player_datas,bytelong) 
-{
-	anint = 0;
-	if ( bytelong > 0 ) {anint += parseInt(ord(fgetc(sequence_player_datas)));} // 1 byte integer
-	if ( bytelong > 1 ) {anint += parseInt(ord(fgetc(sequence_player_datas)))*256;} // 2 byte integer
-	if ( bytelong > 2 ) {anint += parseInt(ord(fgetc(sequence_player_datas)))*256*256;}  // 3 byte integer
-	if ( bytelong > 3 ) {anint += parseInt(ord(fgetc(sequence_player_datas)))*256*256*256;}  // 4 byte integer
-	return anint;
-}
-/* reads a string with characters are 1 or 2 byte long */
-function getString(sequence_player_datas,bytelong) 
-{
-    var scount = ord(fgetc(sequence_player_datas));
-	var result_string = "";
-	if (scount > 0 ) {
-		for (ii=0 ; ii < scount;ii++) {
-			if (bytelong == 1 ) { // 1 byte character
-				result_string += String.fromCharCode(fgetc(sequence_player_datas));
-			}
-			if (bytelong == 2 ) { // 2 byte character
-				/* todo : read 2 bytes and get UTF-8 */
-				result_string += String.fromCharCode(fgetc(sequence_player_datas));
-				++filepos;
-			}
-		}
-	}
-	return result_string;
-}
-/* gameticks in realtime */
-function _game_time(game_time)
-{
-	total_seconds		=	Math.floor((game_time / 15.16285));
-	days 				= 	Math.floor((total_seconds / (60*60*24)));
-	hourn 				= 	Math.floor((total_seconds / (60*60)));
-	seconds_remaining 	= 	Math.floor(total_seconds-(hourn*(60*60)));
-	minutes 			= 	Math.floor((seconds_remaining / 60));
-	seconds 			= 	seconds_remaining-(minutes*60);
-	/* fill with 0 for 2 digit formated */
-	return (hourn < 10 ? '0'+hourn+':' : hourn+':')+(minutes < 10 ? '0'+minutes+':' : minutes+':')+(seconds < 10 ? '0'+seconds : seconds);
-}
+
+}(typeof exports === 'undefined' ? this['secreader'] = {} : exports));

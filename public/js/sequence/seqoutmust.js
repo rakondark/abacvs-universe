@@ -18,12 +18,12 @@ if (sequence !== false) {
 						html_out_secinfo='{{#.}}\n'; 
 if(layout == "widget") {	
 
-		html_out+= '<div style="width:400px; overflow:hidden;">';
+		html_out+= '<div style="width:325px;  position:absolute; z-index:10; overflow:hidden;">';
 		html_out+= '<div class="sequence">\n'
 	//	html_out+= '<div style="float:left;"><img style="height:90px;" src="/images/mapas/mapnorm/'+sequence_info['karteen']+'"></div>';
 		html_out+= '<div style="display:inline-block">';
 } else {
-	html_out+= '<div style="width:800px;">';
+	html_out+= '<div style="width:650px;">';
 	html_out+= '<div class="sequence">\n'
 	// html_out+= '<div style="display:inline-block"><img style="height:90px;" src="/images/mapas/mapnorm/'+sequence_info['karteen']+'"></div>';
 	html_out+= '<div style="display:inline-block">';	
