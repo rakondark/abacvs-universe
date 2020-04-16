@@ -25,6 +25,9 @@ database
 * groups upload
 * server upload
 * access secret key für upload and request
+* multifile upload
+* preview upload
+
  
 ### file store 
 
