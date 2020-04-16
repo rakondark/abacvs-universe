@@ -8,8 +8,12 @@ node.js , some js frameworks like
 * mustache.js for logicless template, 
 * three.js, three-spritetext.js, 3d-force-graph.js for the 3D stuff
 * jquery.js , pagination.js for the ajax stuff
+
+* database
+
 * mysql database
-* flow of love 
+
+
  
 ### ability : 
  
